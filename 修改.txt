@@ -1,0 +1,128 @@
+﻿ 鍛藉悕瑙勫垯
+  浠ｇ爜鏍囪瘑绗︿笉鑳戒娇鐢?SF-CLIP锛屽洜涓?Python 绫诲悕涓嶈兘鍖呭惈 -銆傛墍浠ュ垎涓ゅ鍛藉悕锛?
+
+  - 椤圭洰鍚嶃€佺洰褰曞悕銆侀厤缃枃浠跺悕銆佽緭鍑虹洰褰曘€佹敞閲婂懡浠わ細SF-CLIP / SF-CLIP -> SF-CLIP
+  - Python 绫诲悕銆佸鍏ュ悕銆佹敞鍐屽悕锛欳NN_OTAM_SF-CLIP -> CNN_OTAM_SF_CLIP
+
+  杩欐牱鏃㈡弧瓒抽」鐩樉绀哄悕鏀逛负 SF-CLIP锛屽張涓嶄細鐮村潖 Python 璇硶銆?
+
+  绗?1 姝ワ細閰嶇疆鐩綍鍜屾枃浠跺悕
+  鎶婄洰褰曪細
+
+  configs/projects/SF-CLIP/
+
+  鏀逛负锛?
+
+  configs/projects/SF-CLIP/
+
+  鍚屾椂鏀归厤缃枃浠跺悕锛?
+
+  SF-CLIP_UCF101_1shot_v1.yaml -> SF-CLIP_UCF101_1shot_v1.yaml
+  SF-CLIP_K100_1shot_v1.yaml -> SF-CLIP_K100_1shot_v1.yaml
+  SF-CLIP_SSv2_small_1shot_v1.yaml -> SF-CLIP_SSv2_small_1shot_v1.yaml
+  SF-CLIP_SSv2_Full_1shot_v1.yaml -> SF-CLIP_SSv2_Full_1shot_v1.yaml
+
+  hmdb51/loss_p_rn50.yaml 鏂囦欢鍚嶆湰韬笉鍚?SF-CLIP锛屼笉鐢ㄦ敼鍚嶏紝鍐呴儴鍐呭瑕佹敼銆?
+
+  绗?2 姝ワ細鏇存柊 YAML 鍐呴儴璺緞鍜岃緭鍑哄悕
+  鍏ㄩ噺鏇挎崲閰嶇疆閲岀殑璺緞鍜屽疄楠屽悕锛?
+
+  configs/projects/SF-CLIP -> configs/projects/SF-CLIP
+  ./configs/projects/SF-CLIP -> ./configs/projects/SF-CLIP
+  SF-CLIP_UCF101_1shot -> SF-CLIP_UCF101_1shot
+  SF-CLIP_K100_1shot -> SF-CLIP_K100_1shot
+  SF-CLIP_SSv2_Small_1shotff -> SF-CLIP_SSv2_Small_1shotff
+  SF-CLIP_SSv2_Full_SEMANTIC_ALIGNMENT_1shot -> SF-CLIP_SSv2_Full_SEMANTIC_ALIGNMENT_1shot
+  SF-CLIP_HMDB51_SEMANTIC_ALIGNMENT_FEW_SHOT_1shot -> SF-CLIP_HMDB51_SEMANTIC_ALIGNMENT_FEW_SHOT_1shot
+
+  鍏朵腑 kinetics100 閰嶇疆閲岃繕鏈夛細
+
+  NAME: CNN_OTAM_SF_CLIP
+
+  瑕佹敼涓猴細
+
+  NAME: CNN_OTAM_SF_CLIP
+
+  绗?3 姝ワ細閲嶅懡鍚嶆牳蹇冩ā鍨嬬被
+  鍦?/C:/Users/ASUS/Desktop/SF-CLIP/models/base/few_shot.py 涓妸锛?
+
+  class CNN_OTAM_SF_CLIP(CNN_FSHead):
+
+  鏀逛负锛?
+
+  class CNN_OTAM_SF_CLIP(CNN_FSHead):
+
+  鍚屾淇敼璇ョ被鍐呴儴鎵€鏈夎嚜寮曠敤锛?
+
+  super(CNN_OTAM_SF_CLIP, self).__init__(cfg)
+  CNN_OTAM_SF_CLIP._prompt_logged
+  logger.info("CNN_OTAM_SF_CLIP ...")
+
+  鏀规垚锛?
+
+  super(CNN_OTAM_SF_CLIP, self).__init__(cfg)
+  CNN_OTAM_SF_CLIP._prompt_logged
+  logger.info("CNN_OTAM_SF_CLIP ...")
+
+  鍥犱负杩欎釜绫绘湁 @HEAD_REGISTRY.register()锛屾敞鍐屽悕浼氳窡闅忕被鍚嶅彉鎴?CNN_OTAM_SF_CLIP锛屾墍浠ラ厤缃噷鐨?VIDEO.HEAD.NAME 蹇呴』鍚屾鏀广€?
+
+  绗?4 姝ワ細鏇存柊璇箟瀵归綈妯″瀷鐨勭户鎵块摼
+  杩欎簺鏂囦欢閮戒粠 few_shot.py 瀵煎叆骞剁户鎵挎棫绫伙紝瑕佸悓姝ユ敼锛?
+
+  models/base/semantic_alignment_few_shot.py
+  models/base/semantic_alignment_few_shot1.py
+  models/base/semantic_alignment_few_shot_improved.py
+  models/base/semantic_alignment_few_shot_layer.py
+  models/base/semantic_alignment_few_shot_layer涔嬪墠.py
+  models/base/semantic_alignment_few_shot_queryembeded鍓?py
+  models/base/semantic_alignment_few_shot鍐呭瓨閲婃斁鍓?py
+  models/base/semantic_alignment_few_shot鏃?py
+  models/base/semantic_alignment_few_shot杞疆鍓?py
+  models/base/semantic_alignment_supervised_supervised.py
+  models/base/semantic_alignment_supervised_supervised_1.py
+
+  缁熶竴鏀癸細
+
+  from models.base.few_shot import CNN_OTAM_SF_CLIP
+  class XXX(CNN_OTAM_SF_CLIP):
+
+  涓猴細
+
+  from models.base.few_shot import CNN_OTAM_SF_CLIP
+  class XXX(CNN_OTAM_SF_CLIP):
+
+  娉ㄩ噴閲岀殑 CNN_OTAM_SF_CLIP.forward 涔熸敼鎴?CNN_OTAM_SF_CLIP.forward銆?
+
+  绗?5 姝ワ細澶勭悊澶囦唤妯″瀷鏂囦欢
+  椤圭洰閲岃繕鏈夊嚑涓浠?鍘嗗彶鏂囦欢涔熷畾涔変簡鏃х被锛?
+
+  models/base/few_shot_amp涔嬪墠.py
+  models/base/few_shot_鍐荤粨鍓?py
+  models/base/few_shot_query宓屽叆鍓?py
+
+  濡傛灉浣犵殑瑕佹眰鏄€滄墍鏈?SF-CLIP 鍏ㄩ儴娑堝け鈥濓紝杩欎簺涔熻鏀规垚 CNN_OTAM_SF_CLIP銆傚畠浠綋鍓嶄笉鍦?models/base/__init__.py 瀵煎叆閾鹃噷锛屼絾淇濈暀鏃у悕浼氬鑷存悳绱粛鍑虹幇 SF-CLIP銆?
+
+  绗?6 姝ワ細鏇存柊杩愯鑴氭湰纭紪鐮佽矾寰?
+  杩欎袱涓枃浠舵湁 Linux 缁濆璺緞锛?
+
+  runs/train_supervised_realtime.py
+  runs/train_supervised_supervised.py
+
+  鎶婏細
+
+  /home/u/SF-CLIP
+  /home/u/SF-CLIP/supervised_learning
+
+  鏀逛负锛?
+
+  /home/u/SF-CLIP
+  /home/u/SF-CLIP/supervised_learning
+
+  绗?7 姝ワ細鏈€缁堟牎楠?
+  鎵ц鍚庣敤涓嬮潰鍑犵被妫€鏌ョ‘璁ゆ病鏈夋紡椤癸細
+
+  rg -n "SF-CLIP|SF-CLIP|SF-CLIP|SF-CLIP|CNN_OTAM_SF_CLIP" .
+  rg --files | rg "SF-CLIP|SF-CLIP|SF-CLIP|SF-CLIP"
+  python -m py_compile models/base/few_shot.py models/base/semantic_alignment_few_shot.py
+
+  濡傛灉浣犵‘璁よ繖涓柟妗堬紝鎴戜笅涓€姝ヤ細鎸夎繖涓『搴忛€愭鎵ц锛屾瘡涓€姝ュ悗閮借窇涓€娆℃悳绱㈡鏌ワ紝閬垮厤鏂囦欢鏀瑰悕瀵艰嚧 YAML 璺緞鎴栨ā鍨嬫敞鍐屽悕鏂摼銆

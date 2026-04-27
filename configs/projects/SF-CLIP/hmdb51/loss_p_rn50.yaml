@@ -1,0 +1,305 @@
+﻿# =============================================================================
+# 小样本学习语义对齐模型配置文件 (1-shot)
+# 基于原始SF-CLIP模型，添加语义对齐功能，保持few-shot学习框架
+# =============================================================================
+
+# 基础配置文件路径（参考原始项目结构）
+_BASE: configs/projects/SF-CLIP/OTAM_base.yaml
+
+# 任务类型：小样本动作识别
+TASK_TYPE: few_shot_action
+
+# =============================================================================
+# 训练配置 (TRAIN) - 与原始few-shot项目保持一致
+# =============================================================================
+TRAIN:
+  ENABLE: true
+  USE_CLASSIFICATION: false  # 启用分类损失（视觉-文本对比学习）
+  USE_CLASSIFICATION_VALUE: 1.2  # 分类损失权重（与原始项目一致）
+
+  # Few-shot学习参数
+  DATASET_FEW: HMDB_few_shot
+  DATASET: Ssv2_few_shot
+  META_BATCH: true  # meta or not
+  NUM_SAMPLES: 1000000
+  WAY: 5
+  SHOT: 5
+  QUERY_PER_CLASS: 2 # 进一步减少查询样本以节省GPU内存
+  QUERY_PER_CLASS_TEST: 1
+  NUM_TRAIN_TASKS: 7000
+  NUM_TEST_TASKS: 10000
+  VAL_FRE_ITER: 300
+  BATCH_SIZE: 4  # 最小批次大小
+  BATCH_SIZE_PER_TASK: 4  # 最小批次大小
+  USE_AMP: true  # 开启自动混合精度（AMP）；OTAM 和语义对齐 sigmoid 路径内部强制 float32，训练精度不受影响
+  TEXT_COFF: 0.5
+
+  #COMBINE: true
+  # 在评估阶段是否启用“语义对齐概率 + 帧对齐概率”融合作为最终 logits
+  SEMANTIC_COMBINE: true
+  # =============================================================================
+  # 语义对齐相关配置
+  # =============================================================================
+  # 语义对齐损失权重：控制语义对齐损失在总损失中的比重
+  # 推荐值：0.3-0.7（太小则语义对齐效果不明显，太大则可能影响few-shot学习）
+  SEMANTIC_LOSS_WEIGHT: 1
+
+  # 语义对齐温度参数：控制语义相似度的尺度
+  # 较小的值(如0.05-0.1)使相似度分布更sharp，有助于精确对齐
+  # 较大的值(如0.5-1.0)使相似度分布更smooth，更加鲁棒但可能不够精确
+  # 推荐值：0.1（与全监督模型保持一致）
+  SEMANTIC_TEMPERATURE: 0.1
+
+  # 语义对齐OTAM输入维度顺序：
+  # True  → 原始行为：行=帧, 列=阶段（一帧可对应多阶段）
+  # False → 转置行为：行=阶段, 列=帧（一阶段可对应多帧，一帧只对应一阶段）
+  SEMANTIC_TRANSPOSE: false
+
+  # Query Embedding 控制参数：
+  # USE_QUERY_EMBED_TRAIN: 训练模式是否使用可学习的 query embedding
+  #   - true:  使用可学习的 query_embed_train（用 CLIP 文本特征初始化，训练时随梯度更新）
+  #   - false: 使用冻结的 text_features_train（CLIP 文本编码器提取，不参与训练）
+  # USE_QUERY_EMBED_EVAL: 评估模式是否使用 query embedding
+  #   - true:  使用训练好的 query_embed_train（适用于 base classes 评估）
+  #   - false: 使用冻结的 text_features_test（适用于 novel classes 零样本泛化）
+  USE_QUERY_EMBED_TRAIN: true   # 默认 true，训练时使用可学习的 query embedding
+  USE_QUERY_EMBED_EVAL: false    # 设置为 true，评估时也使用 query embedding
+
+  # Mid Layer 控制参数：
+  # USE_MID_LAYER_TRAIN: 训练模式是否对 context_support 应用 mid_layer 变换
+  # USE_MID_LAYER_EVAL: 评估模式是否对 context_support 应用 mid_layer 变换
+  #   - true:  对文本特征应用 mid_layer 线性变换（增强表达能力）
+  #   - false: 直接使用原始文本特征（保持 CLIP 原始语义）
+  USE_MID_LAYER_TRAIN: false     # 默认 true，训练时使用 mid_layer
+  USE_MID_LAYER_EVAL: false      # 设置为 true，评估时也使用 mid_layer
+  # USE_MID_LAYER2: 是否启用 mid_layer2 并行处理
+  #   - true:  context_support 并行进入 mid_layer 和 mid_layer2，生成 context_support2
+  # USE_MID_LAYER2_SEMANTIC_TRAIN/EVAL: 是否用 context_support2 强化 support_features_for_semantic
+  #   强化方式与 OTAM 一致：context2(cat[support_raw, context_support2])
+  #   注意：USE_MID_LAYER2 必须为 true，这两个参数才生效
+  USE_MID_LAYER2: false                   # 默认 false，不启用 mid_layer2
+  USE_MID_LAYER2_SEMANTIC_TRAIN: false    # 默认 false，训练时不强化语义特征
+  USE_MID_LAYER2_SEMANTIC_EVAL: false     # 默认 false，评估时不强化语义特征
+
+  # 扩展的类别名称 - 语义对齐的核心（few-shot学习：31个训练类别）
+  # 注意：这些描述需要包含动作的语义阶段（用"then"或","分隔）
+  # 例如："动作阶段1, then 动作阶段2" 会被自动解析为两个语义阶段
+  #原本  CLASS_NAME: ['brush hair', 'catch', 'chew', 'clap', 'climb', 'climb stairs', 'dive', 'draw_sword', 'dribble', 'drink', 'fall floor', 'flic flac', 'handstand', 'hug', 'jump', 'kiss', 'pullup', 'punch', 'push', 'ride_bike', 'ride horse', 'shake_hands', 'shoot_bow', 'situp', 'stand', 'sword', 'sword exercise', 'throw', 'turn', 'walk', 'wave']
+  CLASS_NAME: ["a person raises a brush to their head then moves the brush through their hair repeatedly", "a person focuses on a moving object then reaches out hands to catch it", "a person bites food with their teeth then chews it up and down", "a person raises both hands then brings the palms together to clap", "a person grips a surface then pulls their body upward to climb", "a person steps onto the first stair then continues walking up the staircase", "a person bends at the edge of a platform then jumps forward into the water to dive", "a person reaches for the sword handle then pulls the sword out of its sheath", "a person moves forward with a ball then bounces the ball repeatedly on the ground to dribble", "a person lifts a drink to their mouth then tilts the container to drink", "a person loses balance then falls down onto the floor", "a person jumps backward then flips over in a flic flac motion", "a person places hands on the ground then kicks legs up into a handstand", "a person opens their arms then wraps them around another person for a hug", "a person bends their knees then pushes off the ground to jump", "a person leans forward then touches lips to another person for a kiss", "a person grips a bar above then pulls their body upward in a pullup", "a person pulls back a fist then extends the arm forward to punch", "a person places hands on an object then extends arms to push it away", "a person sits on a bicycle then pedals forward to ride the bike", "a person sits on a horse then moves with the horse as it walks or runs", "two people extend their hands then grasp and shake hands", "a person raises a bow then pulls back the string and releases an arrow", "a person lies down on their back then curls the body upward in a situp", "a person moves from sitting then straightens legs to stand upright", "a person holds a sword in hand then swings the blade through the air", "a person practices with a sword then performs repeated training movements as exercise", "a person pulls an arm backward then swings it forward to throw an object", "a person faces one direction then rotates the body to turn", "a person steps forward with one foot then shifts weight and steps with the other to walk", "a person lifts a hand then moves it side to side to wave"]
+
+  TRANSFORMER_DEPTH: 1    # context2 层数，默认1
+  FREEZE_BACKBONE: false  # RN50 backbone 可训练（特征较弱，fine-tune 有益）
+  CHECKPOINT_FILE_PATH: ""
+  EVAL_PERIOD: 2
+  NUM_FOLDS: 1
+
+# =============================================================================
+# 数据增强配置 (AUGMENTATION) - 与原始项目保持一致
+# =============================================================================
+AUGMENTATION:
+  COLOR_AUG: false
+  NO_RANDOM_ERASE: true
+  BRIGHTNESS: 0.5
+  CONTRAST: 0.5
+  SATURATION: 0.5
+  HUE: 0.25
+  GRAYSCALE: 0.3
+  GRAY_FIRST: true
+  CONSISTENT: true
+  SHUFFLE: true
+  RATIO: [0.857142857142857, 1.1666666666666667]
+  USE_GPU: false
+
+  # Mixup和CutMix增强（禁用，与原始项目一致）
+  MIXUP:
+    ENABLE: false
+    ALPHA: 0.0
+    PROB: 1.0
+    MODE: batch
+    SWITCH_PROB: 0.5
+
+  CUTMIX:
+    ENABLE: false
+    ALPHA: 0.0
+    MINMAX: null
+
+  LABEL_SMOOTHING: 0.0
+  SSV2_FLIP: false
+  IS_SPLIT: false
+
+# =============================================================================
+# 数据配置 (DATA) - Few-shot学习数据加载
+# =============================================================================
+DATA:
+  # 数据根目录 - 包含所有51个类别的视频文件
+  # 目录结构: DATA_ROOT_DIR/videos/{class_name}/{video_files}
+  DATA_ROOT_DIR: ./hmdb51/
+
+  # 标注文件目录 - Few-shot学习需要的数据划分文件
+  # 包含：train_few_shot.txt, test_few_shot.txt, val_few_shot.txt
+  # 这些文件定义了31个训练类别和10个测试类别的划分
+  ANNO_DIR: ./configs/projects/SF-CLIP/hmdb51/
+
+  # 视频采样配置
+  NUM_INPUT_FRAMES: 8  # 输入帧数（减少以节省GPU内存，可根据GPU情况调整为8）
+  SAMPLING_RATE: 50    # 采样率：每隔多少帧采样一次
+  SAMPLING_UNIFORM: false  # 禁用均匀采样（与原始项目一致）
+
+  # 图像预处理配置（CLIP预训练模型的标准配置）
+  TRAIN_JITTER_SCALES: [256, 256]  # 训练时图像缩放尺寸
+  MEAN: [0.48145466, 0.4578275, 0.40821073]  # ImageNet均值（CLIP使用）
+  STD: [0.26862954, 0.26130258, 0.27577711]   # ImageNet标准差（CLIP使用）
+  TRAIN_CROP_SIZE: 224  # 训练时中心裁剪尺寸（CLIP输入224x224）
+  TEST_CROP_SIZE: 224   # 测试时中心裁剪尺寸
+  TEST_SCALE: 256       # 测试时先缩放到256再裁剪到224
+
+  # 视频帧率配置
+  CLIP_INTERVAL: 8  # CLIP帧间隔无用
+  FPS: 12           # 目标帧率无用
+  TARGET_FPS: 12    # 目标帧率
+
+# =============================================================================
+# 测试配置 (TEST) - Few-shot学习评估配置
+# =============================================================================
+TEST:
+  ENABLE: false  # 训练时禁用独立测试模式（验证在训练中进行）
+  DATASET: Ssv2_few_shot  # 测试数据集类型（保持原始项目结构）
+  BATCH_SIZE: 4  # 测试批次大小
+  TEST_SET: val  # 测试集名称
+  NUM_ENSEMBLE_VIEWS: 1  # 集成视图数量
+  SPATIAL_CROPS: cctltr  # 空间裁剪类型
+  AUTOMATIC_MULTI_SCALE_TEST: false  # 禁用自动多尺度测试
+  UPLOAD_CLASSIFIER_RESULTS: true  # 上传分类结果
+
+  # 测试集类别名称（few-shot学习：10个测试类别，与训练类别完全不同）
+  # 注意：这些类别在训练时从未见过，用于评估模型的泛化能力
+  # 同样需要包含语义阶段描述（用"then"或","分隔）
+ # 废弃CLASS_NAME: ['Holding the sword in combat stance, then executing precise thrusting and parrying movements', 'Lifting the leg high, then snapping it forward to strike with precise force', 'Approaching the ball with foot raised, then making contact to send the ball flying', 'Reaching toward the object, then fingers close around it to lift the object away', 'Tilting the container at an angle, then liquid flows smoothly into the receiving vessel', 'Placing hands on the ground, then lowering and raising the body through arm strength', 'Moving legs in rapid succession, then covering distance quickly with each forward step', 'Bending at the knees and waist, then the body settles into a seated position', 'Holding the smoking device, then inhaling and exhaling smoke in controlled rhythm', 'Opening the mouth to form words, then vocal cords produce sounds for communication']
+  #原本CLASS_NAME: ['fencing', 'kick', 'kick ball', 'pick', 'pour', 'pushup', 'run', 'sit', 'smoke', 'talk']
+
+  CLASS_NAME: ["two people hold fencing blades then lunge and parry to score touches", "a person lifts a leg then swings it forward to kick", "a person runs toward a ball then swings a foot to kick the ball", "a person bends down then picks up an object from the ground", "a person lifts a container then tilts it to pour liquid out", "a person lowers the chest toward the ground then pushes the body back up in a pushup", "a person starts moving forward then repeatedly pushes off the ground to run", "a person bends their knees then lowers the body onto a seat to sit", "a person holds a cigarette then inhales and exhales smoke", "a person faces another person then moves lips and speaks to talk"]
+# =============================================================================
+# 视频模型配置 (VIDEO) - 使用我们的语义对齐模型
+# =============================================================================
+VIDEO:
+  # 骨干网络配置
+  BACKBONE:
+    DEPTH: null
+    META_ARCH: Identity
+    NUM_FILTERS: null
+    NUM_INPUT_CHANNELS: 3
+    NUM_OUT_FEATURES: null
+    KERNEL_SIZE: null
+    DOWNSAMPLING: null
+    DOWNSAMPLING_TEMPORAL: null
+    NUM_STREAMS: 1
+    EXPANSION_RATIO: 2
+    BRANCH:
+      NAME: null
+    STEM:
+      NAME: null
+    NONLOCAL:
+      ENABLE: false
+      STAGES: [5]
+      MASK_ENABLE: false
+    INITIALIZATION: null
+
+  # 模型头部配置 - 使用我们的语义对齐模型
+  HEAD:
+    NAME: CNN_SEMANTIC_ALIGNMENT_FEW_SHOT  # 小样本学习的语义对齐模型
+    ACTIVATION: softmax
+    DROPOUT_RATE: 0.0
+    NUM_CLASSES: 5  # Few-shot任务中的类别数（WAY）
+    #BACKBONE_NAME: "RN50"  # CLIP骨干网络（与原始项目一致）
+    BACKBONE_NAME: ViT-B/16
+  # 特征维度配置（与原始项目一致）
+  DIM1D: 256 #无效
+  DIM2D: 128 #无效
+  DIM3D: 512 #无效
+  BACKBONE_LAYER: 2 #无效
+  BACKBONE_GROUPS_NUM: 4 #无效
+
+# =============================================================================
+# 系统配置 - 与原始项目保持一致
+# =============================================================================
+NUM_GPUS: 4  # GPU数量（根据实际情况调整）
+OUTPUT_DIR: output/vit/SF-CLIP_HMDB51_SEMANTIC_ALIGNMENT_FEW_SHOT_1shot  # 输出目录
+
+# =============================================================================
+# 数据加载器配置 (DATA_LOADER) - 与原始项目保持一致
+# =============================================================================
+DATA_LOADER:
+  NUM_WORKERS: 24  # 数据加载工作进程数（与原始项目一致）
+  PIN_MEMORY: true  # 禁用内存固定（与原始项目一致）
+  ENABLE_MULTI_THREAD_DECODE: true  # 禁用多线程解码（与原始项目一致）
+
+
+# =============================================================================
+# 优化器配置 (SOLVER) - 与原始项目保持一致
+# =============================================================================
+SOLVER:
+  BASE_LR: 0.00001  # 基础学习率（与原始项目一致）
+  LR_POLICY: steps_with_relative_lrs  # 学习率策略
+  WARMUP_EPOCHS: 1  # 预热轮数（与原始项目一致）
+  WARMUP_START_LR: 1e-06  # 预热起始学习率（与原始项目一致）
+  MAX_EPOCH: 10  # 最大训练轮数（与原始项目一致）
+  OPTIM_METHOD: adam  # 优化器方法（与原始项目一致）
+  MOMENTUM: 0.9  # 动量（与原始项目一致）
+  WEIGHT_DECAY: 5e-5  # 权重衰减（与原始项目一致）
+  DAMPENING: 0.0  # 阻尼（与原始项目一致）
+  NESTEROV: true  # Nesterov动量（与原始项目一致）
+  STEPS_ITER: 700  # 学习率调整步数（与原始项目一致）
+  STEPS: [0, 4, 6]  # 学习率调整阶段（与原始项目一致）
+  LRS: [1, 0.1, 0.01]  # 各阶段学习率倍数（与原始项目一致）
+
+# =============================================================================
+# 日志配置
+# =============================================================================
+LOG_PERIOD: 50  # 每50个iteration输出一次日志
+
+# =============================================================================
+# 设备配置
+# =============================================================================
+LOG_CONFIG_INFO: true  # 输出配置信息到日志
+LOG_MODEL_INFO: true   # 输出模型结构信息到日志
+RANDOM_SEED: 42        # 随机种子（确保可复现）
+
+# =============================================================================
+# 使用说明和注意事项
+# =============================================================================
+#
+# 【模型说明】
+# 本配置文件用于训练小样本学习(Few-shot Learning)的语义对齐模型
+# 模型特点：
+# 1. Few-shot学习范式：训练时使用31个类别，测试时评估10个全新类别
+# 2. 语义对齐机制：利用扩展的动作描述进行帧级别的语义阶段对齐
+# 3. CLIP视觉编码器：使用预训练的CLIP-RN50提取视觉特征
+# 4. OTAM对齐算法：用于视频帧的时序对齐
+#
+# 【训练命令】
+# cd /home/u/SF-CLIP
+# conda activate hyrsm
+# python runs/run.py --cfg FEW-SHOT/configs/projects/SF-CLIP/hmdb51/HMDB51_SEMANTIC_ALIGNMENT_FEW_SHOT_1shot.yaml
+#
+# 【GPU内存优化】
+# 如果遇到CUDA OOM错误，可以尝试：
+# 1. 减少 NUM_INPUT_FRAMES (当前4，可减到2)
+# 2. 减少 QUERY_PER_CLASS (当前2，可减到1)
+# 3. 保持 BATCH_SIZE=1 和 BATCH_SIZE_PER_TASK=1
+#
+# 【超参数调优建议】
+# 1. SEMANTIC_LOSS_WEIGHT: 0.3-0.7之间调整，观察语义对齐效果
+# 2. SEMANTIC_TEMPERATURE: 0.05-0.2之间调整，控制相似度分布
+# 3. BASE_LR: 如果训练不稳定，可以降低到5e-6
+#
+# 【输出说明】
+# 模型会定期输出损失组成：
+# - Base Loss: Few-shot分类损失
+# - Classification Loss: 视觉-文本对比学习损失
+# - Semantic Loss: 语义对齐损失
+# - Total Loss: 总损失
+#
+# 【模型保存】
+# 检查点保存在: output/SF-CLIP_HMDB51_SEMANTIC_ALIGNMENT_FEW_SHOT_1shot/
+# 每300个iteration保存一次checkpoint
+# =============================================================================

@@ -1,0 +1,154 @@
+﻿_BASE: ../OTAM_base.yaml
+TASK_TYPE: few_shot_action
+
+TRAIN:
+  ENABLE: true
+  USE_CLASSIFICATION: false
+  USE_CLASSIFICATION_VALUE: 1.2
+  DATASET_FEW: HMDB_few_shot
+  DATASET: Ssv2_few_shot
+  META_BATCH: true
+  NUM_SAMPLES: 1000000
+  WAY: 5
+  SHOT: 5
+  QUERY_PER_CLASS: 2
+  QUERY_PER_CLASS_TEST: 1
+  NUM_TRAIN_TASKS: 9000
+  NUM_TEST_TASKS: 10000
+  VAL_FRE_ITER: 300
+  BATCH_SIZE: 4
+  BATCH_SIZE_PER_TASK: 4
+  TEXT_COFF: 0.5
+  SEMANTIC_COMBINE: true
+  SEMANTIC_LOSS_WEIGHT: 1 #语义占的权重，帧对齐是1
+  SEMANTIC_TEMPERATURE: 0.1
+  # True  → 原始行为：行=帧, 列=阶段（一帧可对应多阶段）
+  # False → 转置行为：行=阶段, 列=帧（一阶段可对应多帧，一帧只对应一阶段）
+  SEMANTIC_TRANSPOSE: false
+  CLASS_NAME: ["a person holds a makeup applicator near the eye then carefully applies the product to the eyelid", "a person raises a bow and aims at a target then pulls back the string and releases the arrow", "a baby lowers onto hands and knees then moves forward by alternating arms and legs", "a gymnast steps onto a narrow beam then walks and performs movements while maintaining balance", "a person holds an instrument while standing in formation then marches forward in synchronized steps", "a pitcher winds up with the arm raised behind then throws the ball forward toward the target", "a person receives the ball and dribbles forward then passes or shoots toward the basket", "a player drives toward the basket with the ball then leaps upward and slams the ball through the hoop", "a person lies on a bench and grips the barbell with both hands then pushes the weight upward and lowers it back down", "a person sits on a bicycle and grips the handlebars then pedals the legs to move forward", "a player positions the cue stick and aligns the shot then strikes the cue ball forward", "a person holds a blow dryer near the wet hair then moves it back and forth to dry and style the hair", "a person stands upright with feet shoulder-width apart then bends the knees to lower the body down and rises back up", "a person approaches the lane holding a bowling ball then swings the arm back and releases the ball forward", "a person takes a stance in front of a punching bag then throws repeated punches into the bag", "a person raises fists in front of the speed bag then strikes it repeatedly with alternating hands", "a swimmer pulls both arms forward and together in the water then pushes outward and kicks the legs to glide forward", "a person picks up a toothbrush and places it against the teeth then moves it back and forth to clean", "a bowler runs toward the crease with the arm raised then delivers the ball forward in an overarm motion", "a drummer raises the sticks above the drum surface then strikes down in a repeated rhythmic pattern", "two fencers take guard positions facing each other then lunge and parry with their blades", "a player positions the hockey stick behind the ball then swings forward to strike the ball toward the goal", "a person runs toward an incoming frisbee then reaches out and closes the hands to catch it", "a swimmer extends one arm forward into the water then pulls it backward while kicking the legs to move forward", "a hairdresser combs through a section of hair then uses scissors to cut it to the desired length", "a person positions a nail against a surface then swings the hammer downward to drive it in", "a person places both hands on another person's head then uses fingers to press and knead the scalp", "a person places a hoop around the waist then rotates the hips in a circular motion to keep it spinning", "a person sprints forward holding a javelin with the arm raised then launches it forward with a full extension", "a person holds multiple balls and tosses one upward then catches and throws each one in succession to keep them airborne", "a person stands with feet together and arms at the sides then jumps to spread the legs and raise both arms overhead", "a person sits in a kayak and grips the paddle then dips each blade alternately into the water to move forward", "a person holds yarn and two needles together then loops the yarn through stitches to form a new row", "a person sprints toward the takeoff point then leaps forward into the air and stretches the legs out to land", "a person stands upright then steps one foot forward and lowers the back knee toward the ground", "soldiers stand in formation with arms at their sides then march forward with synchronized high-stepping strides", "a person places ingredients into a container then stirs or beats them together with a utensil", "a person pushes a mop forward across the floor then pulls it back to clean the surface", "a person grips one handle of the nunchucks then swings it to spin the other handle rapidly", "a gymnast grips both parallel bars and supports the body with straight arms then performs controlled swings and movements", "a person stretches dough flat with both hands then tosses it upward and spins it in the air", "a musician positions the cello upright and holds the bow then draws the bow across the strings to produce sound", "a person holds the drum with a strap around the body then strikes both drum surfaces alternately with sticks", "a person raises the flute to the lips and positions the fingers over the holes then blows across the mouthpiece to produce notes", "a person sits at the piano and positions both hands over the keys then presses the keys with the fingers to play notes", "a musician holds the instrument across the lap and positions the fingers on the strings then plucks the strings to produce sound", "a musician sits with the drums between the legs then strikes each drum surface with the hands and fingers", "a musician positions the instrument under the chin and holds the bow then draws the bow across the strings to produce notes", "a person runs down the runway holding a long pole then plants the pole into the ground and vaults the body over the bar", "a person grips a horizontal bar above with both hands then pulls the body upward until the chin clears the bar", "a person holds the body in a straight position with hands on the ground then bends the elbows to lower the chest and pushes back up", "a person sits in a raft and holds a paddle then strokes the paddle through the water to move forward", "a person grips a rope above the head with both hands then pulls the body upward and repositions the hands higher", "a person sits in a boat and grips the oars then pulls both oars backward through the water to move forward", "a person applies foam to the face then draws a razor across the skin to remove hair", "a person sits on a watercraft and grips the handlebars then accelerates across the water surface", "a person lifts a ball with the foot then repeatedly taps it upward to keep it off the ground", "a player positions behind the ball and takes a run-up then kicks the ball forward toward the goal", "two wrestlers crouch in a starting position facing each other then charge forward and grapple to push the opponent out", "a person sits on a swing and holds the ropes then pumps the legs forward and backward to build height", "a player stands at the table holding a paddle then swings the arm to hit the incoming ball", "a person stands in a grounded stance with arms relaxed then slowly moves the arms and body through flowing postures", "a person grips a disc and rotates the body to wind up then releases it with a spinning throw", "a person stands on a springy surface and slightly bends the knees then pushes off to jump upward and bounce repeatedly", "a person positions both hands over a keyboard then moves the fingers to press keys in sequence", "a gymnast grips the lower bar and swings the legs backward then releases and transitions to grip the upper bar", "a person holds a leash and walks forward then guides the animal alongside at a steady pace", "a person stands facing a wall and places both hands flat against it then bends the elbows to lean in and pushes back", "a person raises a writing tool to a vertical surface then moves the hand to form letters or shapes", "a person holds the string and releases the yo-yo downward then flicks the wrist upward to return it"]
+  TRANSFORMER_DEPTH: 1 #context
+  FREEZE_BACKBONE: false
+  CHECKPOINT_FILE_PATH: ""
+  EVAL_PERIOD: 2
+  NUM_FOLDS: 1
+
+AUGMENTATION:
+  COLOR_AUG: false
+  NO_RANDOM_ERASE: true
+  BRIGHTNESS: 0.5
+  CONTRAST: 0.5
+  SATURATION: 0.5
+  HUE: 0.25
+  GRAYSCALE: 0.3
+  GRAY_FIRST: true
+  CONSISTENT: true
+  SHUFFLE: true
+  RATIO: [0.857142857142857, 1.1666666666666667]
+  USE_GPU: false
+
+  MIXUP:
+    ENABLE: false
+    ALPHA: 0.0
+    PROB: 1.0
+    MODE: batch
+    SWITCH_PROB: 0.5
+
+  CUTMIX:
+    ENABLE: false
+    ALPHA: 0.0
+    MINMAX: null
+
+  LABEL_SMOOTHING: 0.0
+  SSV2_FLIP: false
+  IS_SPLIT: false
+
+DATA:
+  DATA_ROOT_DIR: ./ucf/
+  ANNO_DIR: ./configs/projects/SF-CLIP/ucf101/
+  NUM_INPUT_FRAMES: 8
+  SAMPLING_RATE: 50
+  SAMPLING_UNIFORM: false
+  TRAIN_JITTER_SCALES: [256, 256]
+  MEAN: [0.48145466, 0.4578275, 0.40821073]
+  STD: [0.26862954, 0.26130258, 0.27577711]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 224
+  TEST_SCALE: 256
+  TEST_CENTER_CROP: true
+  CLIP_INTERVAL: 8
+  FPS: 12
+  TARGET_FPS: 12
+
+TEST:
+  ENABLE: false
+  DATASET: Ssv2_few_shot
+  BATCH_SIZE: 4
+  TEST_SET: val
+  NUM_ENSEMBLE_VIEWS: 1
+  SPATIAL_CROPS: cctltr
+  AUTOMATIC_MULTI_SCALE_TEST: false
+  UPLOAD_CLASSIFIER_RESULTS: true
+  CLASS_NAME: ["a person takes a deep breath in then blows air out forcefully toward the target", "a person bends down and grips a barbell from the floor then lifts it to shoulder height and extends both arms overhead", "a person stands at the edge of a high surface then leaps outward and falls downward into the water", "a person places food on a surface and holds it steady then uses a knife to cut through it repeatedly", "a person stands at the edge of a raised platform then pushes off and enters the water headfirst", "a gymnast begins at one end of the floor area then runs and performs a sequence of flips and acrobatic movements", "a golfer positions the club behind the ball and draws it back then swings forward through the ball to strike it", "a person places both hands on the ground and kicks the legs upward into a handstand then shifts weight between hands to move forward", "a rider mounts and positions in the saddle then the horse accelerates into a full gallop forward", "two dancers face each other and hold hands on a surface then glide and spin together through coordinated movements", "a person holds both ends of a rope and swings it overhead then jumps over it as it passes beneath the feet", "a gymnast grips both handles of the apparatus with straight arms then swings and circles the legs continuously over the surface", "a person pulls the arm back with the fist raised then extends the arm forward rapidly to strike", "a person reaches up and grips a hold on the wall then pulls the body upward and steps higher to advance", "two dancers hold hands and step into position then one partner spins under the raised arm of the other", "a skier stands at the top of a slope and pushes off then descends the slope while shifting weight side to side to steer", "a person jumps from a high point then spreads the limbs and free falls through the air", "a gymnast grips two rings hanging overhead then holds the body still in a controlled position using arm strength", "a surfer lies on a board and paddles forward to gain speed then pushes up and stands on the board to ride", "a player positions the body sideways and draws the racket back then swings forward to strike the ball", "a player moves toward the net and jumps upward then swings the arm down forcefully to strike the ball over the net"]
+
+VIDEO:
+  BACKBONE:
+    DEPTH: null
+    META_ARCH: Identity
+    NUM_FILTERS: null
+    NUM_INPUT_CHANNELS: 3
+    NUM_OUT_FEATURES: null
+    KERNEL_SIZE: null
+    DOWNSAMPLING: null
+    DOWNSAMPLING_TEMPORAL: null
+    NUM_STREAMS: 1
+    EXPANSION_RATIO: 2
+    BRANCH:
+      NAME: null
+    STEM:
+      NAME: null
+    NONLOCAL:
+      ENABLE: false
+      STAGES: [5]
+      MASK_ENABLE: false
+    INITIALIZATION: null
+
+  HEAD:
+    NAME: CNN_SEMANTIC_ALIGNMENT_FEW_SHOT
+    ACTIVATION: softmax
+    DROPOUT_RATE: 0.0
+    NUM_CLASSES: 5
+    BACKBONE_NAME: ViT-B/16
+
+  DIM1D: 256
+  DIM2D: 128
+  DIM3D: 512
+  BACKBONE_LAYER: 2
+  BACKBONE_GROUPS_NUM: 4
+
+NUM_GPUS: 4
+OUTPUT_DIR: output2/SF-CLIP_UCF101_1shot
+
+DATA_LOADER:
+  NUM_WORKERS: 32
+  PIN_MEMORY: true
+  ENABLE_MULTI_THREAD_DECODE: true
+
+SOLVER:
+  BASE_LR: 0.000002
+  LR_POLICY: steps_with_relative_lrs
+  WARMUP_EPOCHS: 1
+  WARMUP_START_LR: 0.0000001
+  MAX_EPOCH: 10
+  OPTIM_METHOD: adam
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 5e-5
+  DAMPENING: 0.0
+  NESTEROV: true
+  STEPS_ITER: 700
+  STEPS: [0, 4, 6]
+  LRS: [1, 0.1, 0.01]
+
+LOG_PERIOD: 50
+LOG_CONFIG_INFO: true
+LOG_MODEL_INFO: true
+RANDOM_SEED: 42
