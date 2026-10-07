@@ -6,7 +6,8 @@
 import os
 import sys
 import time
-sys.path.append(os.path.abspath(os.curdir))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 #os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "gloo"#无NCCL
 from utils.launcher import launch_task

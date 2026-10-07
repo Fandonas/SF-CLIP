@@ -3,6 +3,7 @@ import random
 import torch
 import torch.utils.data
 import utils.logging as logging
+import numpy as np
 
 import time
 import oss2 as oss

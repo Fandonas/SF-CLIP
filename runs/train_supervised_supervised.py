@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import argparse
 import yaml
@@ -12,20 +12,17 @@ import logging
 from datetime import datetime
 import shutil
 
-# 娣诲姞椤圭洰鏍圭洰褰曞埌璺緞
-sys.path.append('/home/u/SF-CLIP')
-sys.path.append('/home/u/SF-CLIP/supervised_learning')
+# 添加项目根目录到路径
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
-# 娣诲姞褰撳墠鑴氭湰鐨勭埗鐩綍鍒拌矾寰?current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
-# 瀵煎叆鎴戜滑鐨勬ā鍧?from models.base.semantic_alignment_supervised_supervised_1 import CNN_SEMANTIC_ALIGNMENT_SUPERVISED
+# 导入我们的模块
+from models.base.semantic_alignment_supervised_supervised_1 import CNN_SEMANTIC_ALIGNMENT_SUPERVISED
 from datasets.supervised_dataset_supervised import create_supervised_dataloader
 
 
 def setup_logging(output_dir: str, log_level: str = "INFO"):
-    """璁剧疆鏃ュ織"""
+    """设置日志"""
     os.makedirs(output_dir, exist_ok=True)
     
     log_file = os.path.join(output_dir, f"train_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
@@ -43,19 +40,19 @@ def setup_logging(output_dir: str, log_level: str = "INFO"):
 
 
 def load_config(config_path: str):
-    """鍔犺浇閰嶇疆鏂囦欢"""
+    """加载配置文件"""
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     return config
 
 
 def create_model(config):
-    """鍒涘缓妯″瀷"""
-    # 鍒涘缓妯″瀷鍙傛暟瀵硅薄
+    """创建模型"""
+    # 创建模型参数对象
     class Args:
         def __init__(self, config):
             self.DATA = type('Data', (), config['DATA'])()
-            # 鍒涘缓榛樿鐨凪ODEL閰嶇疆
+            # 创建默认的MODEL配置
             model_config = config.get('MODEL', {})
             if not model_config:
                 model_config = {
@@ -68,7 +65,8 @@ def create_model(config):
             self.MODEL = type('Model', (), model_config)()
             self.TRAIN = type('Train', (), config['TRAIN'])()
             
-            # 鍒涘缓VIDEO閰嶇疆锛堝師濮嬫ā鍨嬮渶瑕佺殑锛?            video_config = config.get('VIDEO', {})
+            # 创建VIDEO配置（原始模型需要的）
+            video_config = config.get('VIDEO', {})
             if not video_config:
                 head_config = {
                     'NAME': 'CNN_SEMANTIC_ALIGNMENT_SUPERVISED',
@@ -79,34 +77,38 @@ def create_model(config):
                     'HEAD': type('Head', (), head_config)()
                 }
             else:
-                # 濡傛灉閰嶇疆涓湁VIDEO锛岀‘淇滺EAD鏄璞¤€屼笉鏄瓧鍏?                if 'HEAD' in video_config and isinstance(video_config['HEAD'], dict):
+                # 如果配置中有VIDEO，确保HEAD是对象而不是字典
+                if 'HEAD' in video_config and isinstance(video_config['HEAD'], dict):
                     head_config = video_config['HEAD']
                     video_config['HEAD'] = type('Head', (), head_config)()
             
             self.VIDEO = type('Video', (), video_config)()
             
-            # 鍒涘缓TEST閰嶇疆锛堝師濮嬫ā鍨嬮渶瑕佺殑锛?            test_config = config.get('TEST', {})
+            # 创建TEST配置（原始模型需要的）
+            test_config = config.get('TEST', {})
             if not test_config:
                 test_config = {
                     'CLASS_NAME': config['TRAIN'].get('CLASS_NAME', [])
                 }
             self.TEST = type('Test', (), test_config)()
             
-            # 浣跨敤鎵╁睍鐨勭被鍒悕绉?            self.CLASS_NAMES = config['TRAIN'].get('CLASS_NAME', [])
+            # 使用扩展的类别名称
+            self.CLASS_NAMES = config['TRAIN'].get('CLASS_NAME', [])
     
     args = Args(config)
     
-    # 鍒涘缓妯″瀷
+    # 创建模型
     model = CNN_SEMANTIC_ALIGNMENT_SUPERVISED(args)
     
     return model, args
 
 
 def create_dataloaders(config):
-    """鍒涘缓鏁版嵁鍔犺浇鍣?""
+    """创建数据加载器"""
     data_config = config['DATA']
     
-    # 璁粌鏁版嵁鍔犺浇鍣?    train_loader = create_supervised_dataloader(
+    # 训练数据加载器
+    train_loader = create_supervised_dataloader(
         data_root=data_config['DATA_ROOT_DIR'],
         split='train',
         batch_size=data_config['BATCH_SIZE'],
@@ -122,7 +124,8 @@ def create_dataloaders(config):
         class_names=config['TRAIN'].get('CLASS_NAME', [])
     )
     
-    # 楠岃瘉鏁版嵁鍔犺浇鍣?    val_loader = create_supervised_dataloader(
+    # 验证数据加载器
+    val_loader = create_supervised_dataloader(
         data_root=data_config['DATA_ROOT_DIR'],
         split='val',
         batch_size=config['VAL']['BATCH_SIZE'],
@@ -142,10 +145,11 @@ def create_dataloaders(config):
 
 
 def create_optimizer_and_scheduler(model, config):
-    """鍒涘缓浼樺寲鍣ㄥ拰瀛︿範鐜囪皟搴﹀櫒"""
+    """创建优化器和学习率调度器"""
     train_config = config['TRAIN']
     
-    # 鍒涘缓浼樺寲鍣?    if train_config['OPTIMIZER'].lower() == 'sgd':
+    # 创建优化器
+    if train_config['OPTIMIZER'].lower() == 'sgd':
         optimizer = optim.SGD(
             model.parameters(),
             lr=train_config['LEARNING_RATE'],
@@ -162,7 +166,7 @@ def create_optimizer_and_scheduler(model, config):
     else:
         raise ValueError(f"Unsupported optimizer: {train_config['OPTIMIZER']}")
     
-    # 鍒涘缓瀛︿範鐜囪皟搴﹀櫒
+    # 创建学习率调度器
     if train_config['LR_SCHEDULER'] == 'cosine':
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
@@ -182,7 +186,7 @@ def create_optimizer_and_scheduler(model, config):
 
 
 def train_epoch(model, train_loader, optimizer, device, epoch, config, logger):
-    """璁粌涓€涓猠poch"""
+    """训练一个epoch"""
     model.train()
     
     total_loss = 0.0
@@ -199,44 +203,46 @@ def train_epoch(model, train_loader, optimizer, device, epoch, config, logger):
         videos = batch['video'].to(device)  # [batch_size, num_frames, C, H, W]
         labels = batch['label'].to(device)  # [batch_size]
         
-        # 鍓嶅悜浼犳挱
+        # 前向传播
         optimizer.zero_grad()
         
-        # 鍦ㄥ叏鐩戠潱瀛︿範涓紝鏀寔闆嗗拰鐩爣闆嗛兘鏄缁冩牱鏈?        model_output = model(
+        # 在全监督学习中，支持集和目标集都是训练样本
+        model_output = model(
             support_images=videos,
             target_images=videos,
             support_labels=labels,
             target_labels=labels
         )
         
-        # 璁＄畻鎹熷け
+        # 计算损失
         task_dict = {'target_labels': labels}
         loss_dict = model.loss(task_dict, model_output)
         loss = loss_dict['total_loss']
         
-        # 鍙嶅悜浼犳挱
+        # 反向传播
         loss.backward()
         
-        # 姊害瑁佸壀
+        # 梯度裁剪
         if train_config.get('GRAD_CLIP_NORM'):
             torch.nn.utils.clip_grad_norm_(model.parameters(), train_config['GRAD_CLIP_NORM'])
         
         optimizer.step()
         
-        # 缁熻
+        # 统计
         total_loss += loss.item()
         total_text_similarity_loss += loss_dict['text_similarity_loss'].item()
         total_semantic_loss += loss_dict['semantic_loss'].item()
         total_weighted_semantic_loss += loss_dict['weighted_semantic_loss'].item()
         
-        # 璁＄畻鍑嗙‘鐜?        _, predicted = torch.max(model_output['logits'], 1)
-        # 纭繚棰勬祴缁撴灉鍜屾爣绛剧殑鎵规澶у皬鍖归厤
+        # 计算准确率
+        _, predicted = torch.max(model_output['logits'], 1)
+        # 确保预测结果和标签的批次大小匹配
         if predicted.shape[0] != labels.shape[0]:
             predicted = predicted[:labels.shape[0]]
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
         
-        # 瀹炴椂鏇存柊杩涘害鏉★紙姣忎釜batch閮芥洿鏂帮級
+        # 实时更新进度条（每个batch都更新）
         pbar.set_postfix({
             'Total': f'{loss.item():.4f}',
             'Text': f'{loss_dict["text_similarity_loss"].item():.4f}',
@@ -245,7 +251,7 @@ def train_epoch(model, train_loader, optimizer, device, epoch, config, logger):
             'LR': f'{optimizer.param_groups[0]["lr"]:.6f}'
         })
         
-        # 姣?0涓猙atch鎵撳嵃璇︾粏淇℃伅
+        # 每10个batch打印详细信息
         if batch_idx % 10 == 0:
             logger.info(f'Epoch {epoch}, Batch {batch_idx}/{len(train_loader)} - '
                        f'Total Loss: {loss.item():.4f}, '
@@ -270,7 +276,7 @@ def train_epoch(model, train_loader, optimizer, device, epoch, config, logger):
 
 
 def validate(model, val_loader, device, epoch, logger):
-    """楠岃瘉妯″瀷"""
+    """验证模型"""
     model.eval()
     
     total_loss = 0.0
@@ -283,7 +289,7 @@ def validate(model, val_loader, device, epoch, logger):
             videos = batch['video'].to(device)
             labels = batch['label'].to(device)
             
-            # 鍓嶅悜浼犳挱
+            # 前向传播
             model_output = model(
                 support_images=videos,
                 target_images=videos,
@@ -291,21 +297,23 @@ def validate(model, val_loader, device, epoch, logger):
                 target_labels=labels
             )
             
-            # 璁＄畻鎹熷け
+            # 计算损失
             task_dict = {'target_labels': labels}
             loss_dict = model.loss(task_dict, model_output)
             loss = loss_dict['total_loss']
             
             total_loss += loss.item()
             
-            # 璁＄畻鍑嗙‘鐜?            _, predicted = torch.max(model_output['logits'], 1)
-            # 纭繚棰勬祴缁撴灉鍜屾爣绛剧殑鎵规澶у皬鍖归厤
+            # 计算准确率
+            _, predicted = torch.max(model_output['logits'], 1)
+            # 确保预测结果和标签的批次大小匹配
             if predicted.shape[0] != labels.shape[0]:
                 predicted = predicted[:labels.shape[0]]
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
-            # 瀹炴椂鏇存柊楠岃瘉杩涘害鏉?            pbar.set_postfix({
+            # 实时更新验证进度条
+            pbar.set_postfix({
                 'Val_Total': f'{loss.item():.4f}',
                 'Val_Text': f'{loss_dict["text_similarity_loss"].item():.4f}',
                 'Val_Semantic': f'{loss_dict["semantic_loss"].item():.4f}',
@@ -321,7 +329,7 @@ def validate(model, val_loader, device, epoch, logger):
 
 
 def save_checkpoint(model, optimizer, scheduler, epoch, best_acc, output_dir, is_best=False):
-    """淇濆瓨妫€鏌ョ偣"""
+    """保存检查点"""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -332,11 +340,11 @@ def save_checkpoint(model, optimizer, scheduler, epoch, best_acc, output_dir, is
     if scheduler is not None:
         checkpoint['scheduler_state_dict'] = scheduler.state_dict()
     
-    # 淇濆瓨鏈€鏂版鏌ョ偣
+    # 保存最新检查点
     checkpoint_path = os.path.join(output_dir, 'checkpoint_latest.pth')
     torch.save(checkpoint, checkpoint_path)
     
-    # 淇濆瓨鏈€浣虫鏌ョ偣
+    # 保存最佳检查点
     if is_best:
         best_path = os.path.join(output_dir, 'checkpoint_best.pth')
         torch.save(checkpoint, best_path)
@@ -344,7 +352,8 @@ def save_checkpoint(model, optimizer, scheduler, epoch, best_acc, output_dir, is
 
 
 def main():
-    # 鍚敤寮傚父妫€娴?    torch.autograd.set_detect_anomaly(True)
+    # 启用异常检测
+    torch.autograd.set_detect_anomaly(True)
     
     parser = argparse.ArgumentParser(description='Train Semantic Alignment Model (Supervised)')
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
@@ -353,18 +362,18 @@ def main():
     
     args = parser.parse_args()
     
-    # 鍔犺浇閰嶇疆
+    # 加载配置
     config = load_config(args.config)
     
-    # 璁剧疆璁惧
+    # 设置设备
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
     
-    # 璁剧疆闅忔満绉嶅瓙
+    # 设置随机种子
     if 'SEED' in config:
         torch.manual_seed(config['SEED'])
         np.random.seed(config['SEED'])
     
-    # 璁剧疆鏃ュ織
+    # 设置日志
     output_dir = config['OUTPUT_DIR']
     logger = setup_logging(output_dir, config.get('LOG', {}).get('LEVEL', 'INFO'))
     
@@ -372,15 +381,17 @@ def main():
     logger.info(f'Output directory: {output_dir}')
     logger.info(f'Device: {device}')
     
-    # 鍒涘缓妯″瀷
+    # 创建模型
     model, model_args = create_model(config)
     model = model.to(device)
     
-    # 鍒涘缓鏁版嵁鍔犺浇鍣?    train_loader, val_loader = create_dataloaders(config)
+    # 创建数据加载器
+    train_loader, val_loader = create_dataloaders(config)
     
-    # 鍒涘缓浼樺寲鍣ㄥ拰璋冨害鍣?    optimizer, scheduler = create_optimizer_and_scheduler(model, config)
+    # 创建优化器和调度器
+    optimizer, scheduler = create_optimizer_and_scheduler(model, config)
     
-    # 鎭㈠璁粌
+    # 恢复训练
     start_epoch = 0
     best_acc = 0.0
     
@@ -394,20 +405,21 @@ def main():
         best_acc = checkpoint['best_acc']
         logger.info(f'Resumed from epoch {start_epoch}, best accuracy: {best_acc:.2f}%')
     
-    # 璁粌寰幆
+    # 训练循环
     train_config = config['TRAIN']
     
     for epoch in range(start_epoch, train_config['EPOCHS']):
-        # 璁粌
+        # 训练
         train_loss, train_acc = train_epoch(
             model, train_loader, optimizer, device, epoch, config, logger
         )
         
-        # 楠岃瘉
+        # 验证
         if epoch % train_config.get('VAL_FREQ', 5) == 0:
             val_loss, val_acc = validate(model, val_loader, device, epoch, logger)
             
-            # 淇濆瓨鏈€浣虫ā鍨?            is_best = val_acc > best_acc
+            # 保存最佳模型
+            is_best = val_acc > best_acc
             if is_best:
                 best_acc = val_acc
             
@@ -415,10 +427,11 @@ def main():
                 model, optimizer, scheduler, epoch, best_acc, output_dir, is_best
             )
         
-        # 鏇存柊瀛︿範鐜?        if scheduler:
+        # 更新学习率
+        if scheduler:
             scheduler.step()
         
-        # 瀹氭湡淇濆瓨
+        # 定期保存
         if epoch % train_config.get('SAVE_FREQ', 10) == 0:
             save_checkpoint(model, optimizer, scheduler, epoch, best_acc, output_dir)
     

@@ -19,7 +19,7 @@ import math
 logger = logging.get_logger(__name__)
 
 
-def construct_optimizer(model, cfg):
+def construct_optimizer(model, cfg, optimizer_cfg=None):
     """
     Construct an optimizer. 
     Supported optimizers include:
@@ -30,15 +30,21 @@ def construct_optimizer(model, cfg):
 
     Args:
         model (model): model for optimization.
-        cfg (Config): Config object that includes hyper-parameters for the optimizers. 
+        cfg (Config): Global config object.
+        optimizer_cfg (Config, optional): Optimizer hyper-parameters. Existing
+            callers default to cfg.OPTIMIZER; few-shot training passes
+            cfg.SOLVER explicitly so its optimizer and LR schedule share one
+            parameter source.
     """
+    optimizer_cfg = cfg.OPTIMIZER if optimizer_cfg is None else optimizer_cfg
+
     if cfg.TRAIN.ONLY_LINEAR:
         # only include linear layers
         params = []
         for name, p in model.named_parameters():
             if "head" in name:
                 params.append(p)
-        optim_params = [{"params": params, "weight_decay": cfg.OPTIMIZER.WEIGHT_DECAY}]
+        optim_params = [{"params": params, "weight_decay": optimizer_cfg.WEIGHT_DECAY}]
     else:
         bn_params = []                  # Batchnorm parameters.
         head_parameters = []            # Head parameters
@@ -64,8 +70,8 @@ def construct_optimizer(model, cfg):
             else:
                 non_bn_parameters.append(p)
         optim_params = [
-            {"params": non_bn_parameters, "weight_decay": cfg.OPTIMIZER.WEIGHT_DECAY, "lr_reduce": cfg.TRAIN.LR_REDUCE and cfg.TRAIN.FINE_TUNE},
-            {"params": head_parameters, "weight_decay": cfg.OPTIMIZER.WEIGHT_DECAY},
+            {"params": non_bn_parameters, "weight_decay": optimizer_cfg.WEIGHT_DECAY, "lr_reduce": cfg.TRAIN.LR_REDUCE and cfg.TRAIN.FINE_TUNE},
+            {"params": head_parameters, "weight_decay": optimizer_cfg.WEIGHT_DECAY},
             {"params": no_weight_decay_parameters, "weight_decay": 0.0}
         ]
         if not cfg.BN.WB_LOCK:
@@ -82,51 +88,51 @@ def construct_optimizer(model, cfg):
 
         logger.info(f"Optimized parameters constructed. Parameters without weight decay: {no_weight_decay_parameters_names}")
 
-    if cfg.OPTIMIZER.OPTIM_METHOD == "sgd":
-        if cfg.OPTIMIZER.ADJUST_LR:
+    if optimizer_cfg.OPTIM_METHOD == "sgd":
+        if getattr(optimizer_cfg, "ADJUST_LR", False):
             # adjust learning rate for contrastive learning
             # the learning rate calculation is according to SimCLR
             num_clips_per_video = cfg.PRETRAIN.NUM_CLIPS_PER_VIDEO if cfg.PRETRAIN.ENABLE else 1
-            cfg.OPTIMIZER.BASE_LR = cfg.OPTIMIZER.BASE_LR*misc.get_num_gpus(cfg)*cfg.TRAIN.BATCH_SIZE*num_clips_per_video/256.
+            optimizer_cfg.BASE_LR = optimizer_cfg.BASE_LR*misc.get_num_gpus(cfg)*cfg.TRAIN.BATCH_SIZE*num_clips_per_video/256.
         return torch.optim.SGD(
             optim_params,
-            lr=cfg.OPTIMIZER.BASE_LR,
-            momentum=cfg.OPTIMIZER.MOMENTUM,
-            weight_decay=float(cfg.OPTIMIZER.WEIGHT_DECAY),
-            dampening=cfg.OPTIMIZER.DAMPENING,
-            nesterov=cfg.OPTIMIZER.NESTEROV,
+            lr=optimizer_cfg.BASE_LR,
+            momentum=optimizer_cfg.MOMENTUM,
+            weight_decay=float(optimizer_cfg.WEIGHT_DECAY),
+            dampening=optimizer_cfg.DAMPENING,
+            nesterov=optimizer_cfg.NESTEROV,
         )
-    elif cfg.OPTIMIZER.OPTIM_METHOD == "adam":
+    elif optimizer_cfg.OPTIM_METHOD == "adam":
         return torch.optim.Adam(
             optim_params,
-            lr=cfg.OPTIMIZER.BASE_LR,
+            lr=optimizer_cfg.BASE_LR,
             betas=(0.9, 0.999),
-            weight_decay=cfg.OPTIMIZER.WEIGHT_DECAY,
+            weight_decay=optimizer_cfg.WEIGHT_DECAY,
         )
-    elif cfg.OPTIMIZER.OPTIM_METHOD == "adamw":
+    elif optimizer_cfg.OPTIM_METHOD == "adamw":
         return torch.optim.AdamW(
             optim_params,
-            lr=cfg.OPTIMIZER.BASE_LR,
+            lr=optimizer_cfg.BASE_LR,
             betas=(0.9, 0.999),
-            weight_decay=cfg.OPTIMIZER.WEIGHT_DECAY,
+            weight_decay=optimizer_cfg.WEIGHT_DECAY,
         )
-    elif cfg.OPTIMIZER.OPTIM_METHOD == "lars":
-        if cfg.OPTIMIZER.ADJUST_LR:
+    elif optimizer_cfg.OPTIM_METHOD == "lars":
+        if getattr(optimizer_cfg, "ADJUST_LR", False):
             # adjust learning rate for contrastive learning
             # the learning rate calculation is according to SimCLR
             num_clips_per_video = cfg.PRETRAIN.NUM_CLIPS_PER_VIDEO if cfg.PRETRAIN.ENABLE else 1
-            cfg.OPTIMIZER.BASE_LR = cfg.OPTIMIZER.BASE_LR*misc.get_num_gpus(cfg)*cfg.TRAIN.BATCH_SIZE*num_clips_per_video/256.
+            optimizer_cfg.BASE_LR = optimizer_cfg.BASE_LR*misc.get_num_gpus(cfg)*cfg.TRAIN.BATCH_SIZE*num_clips_per_video/256.
         return LARS(
             optim_params,
-            lr=cfg.OPTIMIZER.BASE_LR,
-            momentum=cfg.OPTIMIZER.MOMENTUM,
-            weight_decay=float(cfg.OPTIMIZER.WEIGHT_DECAY),
-            dampening=cfg.OPTIMIZER.DAMPENING,
-            nesterov=cfg.OPTIMIZER.NESTEROV,
+            lr=optimizer_cfg.BASE_LR,
+            momentum=optimizer_cfg.MOMENTUM,
+            weight_decay=float(optimizer_cfg.WEIGHT_DECAY),
+            dampening=optimizer_cfg.DAMPENING,
+            nesterov=optimizer_cfg.NESTEROV,
         )
     else:
         raise NotImplementedError(
-            "Does not support {} optimizer".format(cfg.OPTIMIZER.OPTIM_METHOD)
+            "Does not support {} optimizer".format(optimizer_cfg.OPTIM_METHOD)
         )
 
 

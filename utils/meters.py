@@ -523,15 +523,16 @@ class TrainMeter(object):
     Measure training stats.
     """
 
-    def __init__(self, epoch_iters, cfg):
+    def __init__(self, epoch_iters, cfg, schedule_cfg=None):
         """
         Args:
             epoch_iters (int): the overall number of iterations of one epoch.
             cfg (Config): the global config object.
         """
         self._cfg = cfg
+        self.schedule_cfg = cfg.OPTIMIZER if schedule_cfg is None else schedule_cfg
         self.epoch_iters = epoch_iters
-        self.MAX_EPOCH = cfg.OPTIMIZER.MAX_EPOCH * epoch_iters
+        self.MAX_EPOCH = self.schedule_cfg.MAX_EPOCH * epoch_iters
         self.iter_timer = Timer()
         self.loss = ScalarMeter(cfg.LOG_PERIOD)
         self.loss_total = 0.0
@@ -627,7 +628,7 @@ class TrainMeter(object):
         eta = str(datetime.timedelta(seconds=int(eta_sec)))
         stats = {
             "_type": "train_iter",
-            "epoch": "{}/{}".format(cur_epoch + 1, self._cfg.OPTIMIZER.MAX_EPOCH),
+            "epoch": "{}/{}".format(cur_epoch + 1, self.schedule_cfg.MAX_EPOCH),
             "iter": "{}/{}".format(cur_iter + 1, self.epoch_iters),
             "time_diff": self.iter_timer.seconds(),
             "eta": eta,
@@ -654,7 +655,7 @@ class TrainMeter(object):
         eta = str(datetime.timedelta(seconds=int(eta_sec)))
         stats = {
             "_type": "train_epoch",
-            "epoch": "{}/{}".format(cur_epoch + 1, self._cfg.OPTIMIZER.MAX_EPOCH),
+            "epoch": "{}/{}".format(cur_epoch + 1, self.schedule_cfg.MAX_EPOCH),
             "time_diff": self.iter_timer.seconds(),
             "eta": eta,
             "lr": self.lr,
@@ -678,13 +679,14 @@ class ValMeter(object):
     Measures validation stats.
     """
 
-    def __init__(self, max_iter, cfg):
+    def __init__(self, max_iter, cfg, schedule_cfg=None):
         """
         Args:
             max_iter (int): the max number of iteration of the current epoch.
             cfg (Config): the global config object.
         """
         self._cfg = cfg
+        self.schedule_cfg = cfg.OPTIMIZER if schedule_cfg is None else schedule_cfg
         self.max_iter = max_iter
         self.iter_timer = Timer()
         # Current minibatch errors (smoothed over a window).
@@ -782,7 +784,7 @@ class ValMeter(object):
         eta = str(datetime.timedelta(seconds=int(eta_sec)))
         stats = {
             "_type": "val_iter" if not self.model_ema_enabled else "ema_val_iter",
-            "epoch": "{}/{}".format(cur_epoch + 1, self._cfg.OPTIMIZER.MAX_EPOCH),
+            "epoch": "{}/{}".format(cur_epoch + 1, self.schedule_cfg.MAX_EPOCH),
             "iter": "{}/{}".format(cur_iter + 1, self.max_iter),
             "time_diff": self.iter_timer.seconds(),
             "eta": eta,
@@ -802,7 +804,7 @@ class ValMeter(object):
         """
         stats = {
             "_type": "val_epoch" if not self.model_ema_enabled else "ema_val_epoch",
-            "epoch": "{}/{}".format(cur_epoch + 1, self._cfg.OPTIMIZER.MAX_EPOCH),
+            "epoch": "{}/{}".format(cur_epoch + 1, self.schedule_cfg.MAX_EPOCH),
             "time_diff": self.iter_timer.seconds(),
             "gpu_mem": "{:.2f} GB".format(misc.gpu_mem_usage()),
             "RAM": "{:.2f}/{:.2f} GB".format(*misc.cpu_mem_usage()),

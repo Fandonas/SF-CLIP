@@ -19,8 +19,14 @@ import math
 import utils.bucket as bu
 import utils.distributed as du
 import utils.logging as logging
+from utils.few_shot_training import (
+    build_few_shot_schedule_signature,
+    infer_legacy_completed_tasks,
+)
 
 logger = logging.get_logger(__name__)
+
+FEW_SHOT_TRAIN_STATE_VERSION = 1
 
 
 def make_checkpoint_dir(path_to_job):
@@ -99,7 +105,7 @@ def is_checkpoint_epoch(cfg, cur_epoch):
     return (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD == 0 or cur_epoch + 1 == cfg.OPTIMIZER.MAX_EPOCH
 
 
-def save_checkpoint(path_to_job, model, model_ema, optimizer, epoch, cfg, model_bucket=None):
+def save_checkpoint(path_to_job, model, model_ema, optimizer, epoch, cfg, model_bucket=None, train_state=None):
     """
     Save a checkpoint.
     Args:
@@ -127,6 +133,8 @@ def save_checkpoint(path_to_job, model, model_ema, optimizer, epoch, cfg, model_
     }
     if model_ema is not None:
         checkpoint["model_ema_state"] = model_ema.module.state_dict() if cfg.NUM_GPUS*cfg.NUM_SHARDS > 1 else model_ema.state_dict()
+    if train_state is not None:
+        checkpoint["train_state"] = train_state
     # Write the checkpoint.
     path_to_checkpoint = get_path_to_checkpoint(path_to_job, epoch + 1)
     with open(path_to_checkpoint, "wb") as f:
@@ -283,6 +291,7 @@ def load_checkpoint(
     optimizer=None,
     inflation=False,
     pre_process=False,
+    return_train_state=False,
 ):
     """
     Load the checkpoint from the given file. If inflation is True, inflate the
@@ -344,6 +353,8 @@ def load_checkpoint(
         epoch = checkpoint["epoch"]
     else:
         epoch = -1
+    if return_train_state:
+        return epoch, checkpoint.get("train_state")
     return epoch
 
 
@@ -529,36 +540,139 @@ def load_test_checkpoint(cfg, model, model_ema, model_bucket=None):
         bu.clear_tmp_file(checkpoint_path)
 
 
-def load_train_checkpoint(cfg, model, model_ema, optimizer, model_bucket=None):
+def build_few_shot_train_state(cfg, completed_tasks, scaler):
+    """Build versioned resume metadata for task-based few-shot training."""
+    return {
+        "version": FEW_SHOT_TRAIN_STATE_VERSION,
+        "completed_tasks": int(completed_tasks),
+        "steps_per_epoch": int(cfg.SOLVER.STEPS_ITER),
+        "grad_scaler_state": scaler.state_dict(),
+        "schedule": build_few_shot_schedule_signature(cfg),
+    }
+
+
+def restore_few_shot_train_state(cfg, start_epoch, train_state, scaler):
+    """Restore a new task counter or conservatively infer a legacy one."""
+    if train_state is not None:
+        if not isinstance(train_state, dict):
+            raise ValueError("Checkpoint train_state must be a dictionary.")
+        version = train_state.get("version")
+        if version != FEW_SHOT_TRAIN_STATE_VERSION:
+            raise ValueError(
+                "Unsupported few-shot train_state version: {}.".format(version)
+            )
+
+        saved_schedule = train_state.get("schedule")
+        current_schedule = build_few_shot_schedule_signature(cfg)
+        if saved_schedule != current_schedule:
+            keys = sorted(set((saved_schedule or {}).keys()) | set(current_schedule.keys()))
+            differences = {
+                key: {
+                    "checkpoint": (saved_schedule or {}).get(key),
+                    "current": current_schedule.get(key),
+                }
+                for key in keys
+                if (saved_schedule or {}).get(key) != current_schedule.get(key)
+            }
+            raise ValueError(
+                "Few-shot checkpoint schedule does not match the current SOLVER "
+                "configuration: {}.".format(differences)
+            )
+
+        completed_tasks = int(train_state.get("completed_tasks", -1))
+        if not 0 <= completed_tasks <= int(cfg.TRAIN.NUM_TRAIN_TASKS):
+            raise ValueError(
+                "Checkpoint completed_tasks={} is outside [0, {}].".format(
+                    completed_tasks, cfg.TRAIN.NUM_TRAIN_TASKS
+                )
+            )
+
+        scaler_state = train_state.get("grad_scaler_state")
+        if scaler_state is None:
+            logger.warning(
+                "Few-shot checkpoint has no GradScaler state; AMP scaling restarts."
+            )
+        else:
+            scaler.load_state_dict(scaler_state)
+        return completed_tasks
+
+    if int(start_epoch) <= 0:
+        return 0
+
+    completed_tasks = infer_legacy_completed_tasks(start_epoch, cfg)
+    logger.warning(
+        "Legacy few-shot checkpoint detected. It was saved before its validation "
+        "boundary task and did not store pending accumulated gradients or AMP "
+        "GradScaler state. Resuming from the last complete accumulation boundary "
+        "at completed_tasks=%d. The old model was trained with the legacy LR "
+        "timeline and is not strictly comparable with a fresh corrected run.",
+        completed_tasks,
+    )
+    return completed_tasks
+
+
+def load_train_checkpoint(
+    cfg,
+    model,
+    model_ema,
+    optimizer,
+    model_bucket=None,
+    return_train_state=False,
+):
     """
     Loading checkpoint logic for training.
+
+    Existing callers receive only start_epoch. Few-shot callers may request the
+    optional train_state while keeping all other training paths unchanged.
     """
     read_from_oss = False
+    train_state = None
     if cfg.TRAIN.AUTO_RESUME and has_checkpoint(cfg.OUTPUT_DIR):
         last_checkpoint = get_last_checkpoint(cfg.OUTPUT_DIR)
         logger.info("Load from last checkpoint, {}.".format(last_checkpoint))
-        checkpoint_epoch = load_checkpoint(
-            cfg, last_checkpoint, model, model_ema, cfg.NUM_GPUS*cfg.NUM_SHARDS > 1, optimizer, 
-            pre_process=cfg.TRAIN.CHECKPOINT_PRE_PROCESS.ENABLE
+        load_result = load_checkpoint(
+            cfg,
+            last_checkpoint,
+            model,
+            model_ema,
+            cfg.NUM_GPUS*cfg.NUM_SHARDS > 1,
+            optimizer,
+            pre_process=cfg.TRAIN.CHECKPOINT_PRE_PROCESS.ENABLE,
+            return_train_state=return_train_state,
         )
+        if return_train_state:
+            checkpoint_epoch, train_state = load_result
+        else:
+            checkpoint_epoch = load_result
         start_epoch = checkpoint_epoch + 1
     elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "" and cfg.TRAIN.CHECKPOINT_FILE_PATH is not None:
         _checkpoint_file_path = cfg.TRAIN.CHECKPOINT_FILE_PATH
         if _checkpoint_file_path.split(':')[0] == 'oss':
             model_bucket_name = _checkpoint_file_path.split('/')[2]
             if model_bucket is None or model_bucket.bucket_name != model_bucket_name:
-                model_bucket = bu.initialize_bucket(cfg.OSS.KEY, cfg.OSS.SECRET, cfg.OSS.ENDPOINT, model_bucket_name)
-            checkpoint_path = 'ckp{}.pyth'.format(cfg.LOCAL_RANK if cfg.NUM_GPUS*cfg.NUM_SHARDS > 1 else 0)
+                model_bucket = bu.initialize_bucket(
+                    cfg.OSS.KEY,
+                    cfg.OSS.SECRET,
+                    cfg.OSS.ENDPOINT,
+                    model_bucket_name,
+                )
+            checkpoint_path = 'ckp{}.pyth'.format(
+                cfg.LOCAL_RANK if cfg.NUM_GPUS*cfg.NUM_SHARDS > 1 else 0
+            )
             read_from_oss = bu.read_from_bucket(
                 model_bucket,
                 _checkpoint_file_path,
                 checkpoint_path,
-                model_bucket_name
+                model_bucket_name,
             )
         else:
             checkpoint_path = cfg.TRAIN.CHECKPOINT_FILE_PATH
-        logger.info("Load from given checkpoint file.\nCheckpoint file path: {}".format(_checkpoint_file_path))
-        checkpoint_epoch = load_checkpoint(
+        logger.info(
+            "Load from given checkpoint file.\nCheckpoint file path: {}".format(
+                _checkpoint_file_path
+            )
+        )
+        load_result = load_checkpoint(
             cfg,
             checkpoint_path,
             model,
@@ -566,12 +680,23 @@ def load_train_checkpoint(cfg, model, model_ema, optimizer, model_bucket=None):
             cfg.NUM_GPUS*cfg.NUM_SHARDS > 1,
             optimizer=None if cfg.TRAIN.FINE_TUNE else optimizer,
             inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
-            pre_process=cfg.TRAIN.CHECKPOINT_PRE_PROCESS.ENABLE
+            pre_process=cfg.TRAIN.CHECKPOINT_PRE_PROCESS.ENABLE,
+            return_train_state=return_train_state,
         )
-        start_epoch = 0 if cfg.TRAIN.FINE_TUNE else (checkpoint_epoch + 1)
+        if return_train_state:
+            checkpoint_epoch, train_state = load_result
+        else:
+            checkpoint_epoch = load_result
+        if cfg.TRAIN.FINE_TUNE:
+            start_epoch = 0
+            train_state = None
+        else:
+            start_epoch = checkpoint_epoch + 1
         if read_from_oss:
             bu.clear_tmp_file(checkpoint_path)
     else:
         start_epoch = 0
-    
+
+    if return_train_state:
+        return start_epoch, train_state
     return start_epoch

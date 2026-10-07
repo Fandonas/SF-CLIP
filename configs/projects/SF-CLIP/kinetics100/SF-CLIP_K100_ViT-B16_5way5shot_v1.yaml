@@ -1,0 +1,124 @@
+# Kinetics-100 / ViT-B/16 / 5-way 5-shot.
+# 此文件位于 kinetics100 目录，因此可直接继承上一层的 OTAM 基类。
+_BASE: ../OTAM_base.yaml
+
+TASK_TYPE: few_shot_action
+RANDOM_SEED: 18
+
+TRAIN:
+  ENABLE: true
+  USE_CLASSIFICATION: false
+  USE_CLASSIFICATION_VALUE: 1.5
+  DATASET: Ssv2_few_shot
+  DATASET_FEW: Kinetics_few_shot
+  META_BATCH: true
+  NUM_SAMPLES: 1000000
+  WAY: 5
+  SHOT: 5
+  WAT_TEST: 5
+  SHOT_TEST: 5
+  QUERY_PER_CLASS: 2
+  QUERY_PER_CLASS_TEST: 1
+  NUM_TRAIN_TASKS: 2250
+  NUM_TEST_TASKS: 10000
+  VAL_FRE_ITER: 100
+  BATCH_SIZE: 2
+  BATCH_SIZE_PER_TASK: 2
+  TEXT_COFF: 0.8
+  USE_TRANSFORMER: false
+  # 仅使用 OTAM 帧对齐与语义对齐。
+  SEMANTIC_LOSS_WEIGHT: 0.4
+  SEMANTIC_TEMPERATURE: 0.1
+  SEMANTIC_TRANSPOSE: false
+  SEMANTIC_COMBINE: true
+  # 默认禁止语义分支失败后退化为纯帧对齐。
+  ALLOW_SEMANTIC_FALLBACK: false
+  EVAL_TEXT: false
+  COMBINE: false
+  SINGLE_DIRECT: false
+  MERGE_BEFORE: false
+
+  # ViT 语义对齐分支。
+  USE_QUERY_EMBED_TRAIN: false
+  USE_QUERY_EMBED_EVAL: false
+  USE_MID_LAYER_TRAIN: false
+  USE_MID_LAYER_EVAL: false
+  USE_MID_LAYER2: false
+  USE_MID_LAYER2_SEMANTIC_TRAIN: false
+  USE_MID_LAYER2_SEMANTIC_EVAL: false
+  USE_MID_LAYER_RELU: false
+  USE_AMP: true
+  TRANSFORMER_DEPTH: 1
+  FREEZE_BACKBONE: false
+  CLASS_NAME: ["a person raises the hands as if holding drumsticks then moves the hands rhythmically to play imaginary drums while air drumming","two people clasp hands with their elbows supported then push against each other in an arm wrestling contest","a person positions the lips and mouth then makes rhythmic percussion sounds with the mouth while beatboxing","a person grips the handlebars of a bicycle on snow then pedals the bicycle through the snow","a person gathers molten glass on a blowpipe then blows into the pipe while rotating it to shape the glass","a person leans toward lit candles then blows air onto the candle flames to put them out","a person holds a bowling ball and swings the arm back then releases the ball to roll down the bowling lane toward the pins","a person lowers the body toward the floor then performs spins and supported body movements while breakdancing","a person is secured to a bungee cord at a high platform then jumps off and falls while attached to the cord","a person prepares the hands or a glove to catch a baseball or draws the arm back to throw then catches the baseball or throws it forward","cheerleaders take their positions then perform coordinated jumps kicks and arm movements while cheerleading","a person places a mop broom or cleaning cloth on the floor then moves it across the floor to clean it","a person balances a juggling ball on the hands or body then rolls it across them while maintaining contact during contact juggling","a person places chicken in cookware or on a cooking surface then heats and handles the chicken as it cooks","dancers stand in a line then perform coordinated steps and turns while country line dancing","a person wraps a section of hair around a curling tool then holds and releases it to curl the hair","a person bends down and grips a weight on the ground then extends the legs and hips to stand while deadlifting the weight","a person positions a nail care tool or brush against the nails then files shapes or polishes the nails","a player pushes a basketball down with one hand then repeatedly receives and pushes the bouncing ball while dribbling","a person sits at the controls of a tractor then steers and operates the tractor as it moves","a person holds a ball and drops it toward the ground then swings a foot to strike the ball in a drop kick","a person applies hair dye to sections of hair then spreads the dye through the hair to change its color","a person lifts a burger toward the mouth then bites into the burger and chews","a person brings food near birds then offers or scatters the food for the birds to eat","a person holds out an award to another person or reaches to receive it then hands over or accepts the award","a person stands beside a hopscotch grid then hops through the marked squares while playing hopscotch","a person grips the handlebars of a jet ski then steers the jet ski as it travels across the water","a person positions at the edge of a swimming pool then jumps into the pool water","a person reacts with an open mouth and changing facial expression then repeatedly exhales and moves the face or body while laughing","a person shapes and stacks snow into a body and head then adds features to make a snowman","a person places the hands on another person's back then presses and rubs the back muscles to massage them","a person positions a lawn mower on grass then moves the mower across the lawn to cut the grass","a person grips the cap or stopper of a bottle then twists lifts or pulls it off to open the bottle","a musician holds an accordion and places the fingers on its keys or buttons then pushes and pulls the bellows while pressing them to play","a badminton player positions a racket to meet a shuttlecock then swings the racket to hit the shuttlecock across the net","a basketball player moves with or receives a basketball then dribbles passes or shoots it toward the basket","a musician places the mouth at the end of a didgeridoo then blows into the didgeridoo to produce a sustained sound","an ice hockey player skates toward a puck with a hockey stick then uses the stick to control pass or shoot the puck","a musician positions the fingers over a musical keyboard then presses its keys to play notes","a musician holds a ukulele with the fingers on its neck then strums or plucks the ukulele strings to play","a musician holds mallets over the bars of a xylophone then strikes the bars in sequence to play notes","a weather presenter stands beside a weather map or display then points to weather information while delivering a forecast","a person raises the fists in front of a punching bag then repeatedly punches the bag","a person grips a cart then pushes it to move the cart forward","a person holds a book open then looks along the text and reads the book","a person balances on the seat and pedals of a unicycle then pedals the single wheel forward while maintaining balance","a person holds the head facing forward then turns it repeatedly from side to side to shake the head","a person positions a pencil against a sharpener or sharpening blade then removes material from the pencil tip to sharpen it","a person places a razor or clippers against the scalp then moves the tool over the head to shave off hair","an athlete holds a shot against the neck or shoulder then drives the body forward and pushes the shot away in a shot put","a person holds a deck of playing cards then mixes the cards together by shuffling them","a person places the feet on a slackline then balances and steps along the flexible line","a sled driver stands or sits on a sled behind a team of dogs then guides the dogs as they pull the sled in a race","a person stands with both feet attached to a snowboard then rides across snow while shifting weight to steer","a person bends or tucks the body then rotates head over heels in a somersault","a person stands with the feet planted then bends the knees and hips to squat down and straightens them to rise","a person is lifted onto the hands of a crowd then is carried above the crowd while crowd surfing","a performer grips a trapeze bar then swings through the air or transfers to another trapeze","a person looks at a computer screen and positions the hands at its controls then types or uses a mouse to operate the computer","a person holds a dish or utensil at a washing area then scrubs and rinses it to wash the dishes","a person wets the hands then rubs them together and rinses them to wash the hands","a person holds a tow rope with water skis on the feet then is pulled across the water while balancing on the skis","a person spreads wax or places a wax strip on a leg then pulls the wax away to remove leg hair","a person arranges strips of weaving material then interlaces the strips to form a basket"]
+  CHECKPOINT_FILE_PATH: ""
+  EVAL_PERIOD: 2
+  NUM_FOLDS: 1
+
+AUGMENTATION:
+  COLOR_AUG: false
+  NO_RANDOM_ERASE: true
+  SUPPORT_QUERY_DIFF: true
+
+TEST:
+  ENABLE: false
+  DATASET: Ssv2_few_shot
+  BATCH_SIZE: 2
+  TEST_SET: val
+  NUM_ENSEMBLE_VIEWS: 1
+  SPATIAL_CROPS: cctltr
+  CLASS_NAME: ["a person aims a sandblasting nozzle at a surface then directs a pressurized stream of abrasive material onto it","a street performer prepares to perform in a public place then plays music or presents an act for passersby while busking","a person steadies a watermelon and positions a knife against it then cuts through the watermelon","a ballet dancer positions the feet and arms then performs controlled steps turns or balanced poses while dancing ballet","a dancer bends the knees and positions the feet then alternates kicks and swiveling steps while dancing the Charleston","a dancer raises and positions the arms then performs the repeated arm gestures and turns of the Macarena dance","a person stands at the edge of a cliff above water then dives from the cliff into the water below","a person positions an eyebrow pencil or makeup brush at an eyebrow then applies short strokes to fill in the eyebrow","a person holds a sheet of paper then bends and creases the paper to fold it","a person places a hula hoop around the waist then moves the hips to keep the hoop rotating","a hurling player positions a hurley stick near the ball then swings the stick to strike the ball during the game","a person stands on ice wearing ice skates then pushes off and glides across the ice","a person is attached to a paraglider wing then launches and glides through the air beneath the wing","a drummer raises drumsticks or the hands above drums then strikes the drums in a rhythmic pattern","players gather around a Monopoly board then take turns moving game pieces and carrying out actions in the game","a musician raises a trumpet to the mouth then blows into the mouthpiece while operating the valves to play","a person places the hands against a car then pushes to make the car roll","a person sits on an elephant then rides as the elephant moves","a person holds shears or clippers against a sheep's fleece then cuts away the fleece to shear the sheep","a person raises a bent leg and turns the body sideways then extends the leg to deliver a side kick","a person raises or extends an arm then lengthens or holds its position to stretch the arm","a tap dancer positions the feet then strikes the floor with tap shoes in a rhythmic sequence","a person grips an axe and draws the arm back then swings the arm forward and releases the axe toward a target","a person opens the lid flaps or wrapping of a box then removes its contents while unboxing"]
+  AUTOMATIC_MULTI_SCALE_TEST: false
+  UPLOAD_CLASSIFIER_RESULTS: true
+
+DATA:
+  DATA_ROOT_DIR: ./k100/k100_output/
+  ANNO_DIR: ./configs/projects/SF-CLIP/kinetics100/
+  NUM_INPUT_FRAMES: 8
+  SAMPLING_RATE: 35
+  SAMPLING_UNIFORM: false
+  TRAIN_JITTER_SCALES: [256, 256]
+  MEAN: [0.48145466, 0.4578275, 0.40821073]
+  STD: [0.26862954, 0.26130258, 0.27577711]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 224
+  TEST_SCALE: 256
+  CLIP_INTERVAL: 8
+  TEST_CENTER_CROP: true
+  FPS: 12
+  TARGET_FPS: 12
+
+LOG_PERIOD: 50
+
+DATA_LOADER:
+  NUM_WORKERS: 24
+  PIN_MEMORY: true
+  ENABLE_MULTI_THREAD_DECODE: true
+
+SOLVER:
+  BASE_LR: 0.00001
+  LR_POLICY: steps_with_relative_lrs
+  STEPS_ITER: 250
+  STEPS: [0, 3, 6]
+  LRS: [1, 0.1, 0.01]
+  MAX_EPOCH: 9
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 5e-4
+  WARMUP_EPOCHS: 1
+  WARMUP_START_LR: 0.000005
+  OPTIM_METHOD: adam
+  DAMPENING: 0.0
+  NESTEROV: true
+
+VIDEO:
+  HEAD:
+    NAME: CNN_SEMANTIC_ALIGNMENT_FEW_SHOT
+    BACKBONE_NAME: ViT-B/16
+    ACTIVATION: softmax
+    DROPOUT_RATE: 0.0
+    NUM_CLASSES: 5
+  BACKBONE:
+    META_ARCH: Identity
+
+NUM_GPUS: 2
+OUTPUT_DIR: SEMANTIC_LOSS_WEIGHT/new/loss16_ViTB16_5way5shot

@@ -1,4 +1,4 @@
-﻿import torch
+import torch
 from torch.functional import norm
 import torch.nn as nn
 from torch import einsum
@@ -74,7 +74,7 @@ def bytes_to_unicode():
     To avoid that, we want lookup tables between utf-8 bytes and unicode strings.
     And avoids mapping to whitespace/control characters the bpe code barfs on.
     """
-    bs = list(range(ord("!"), ord("~")+1))+list(range(ord("\xa1"), ord("\xac")+1))+list(range(ord("\xae"), ord("\xff")+1))
+    bs = list(range(ord("!"), ord("~")+1))+list(range(ord("¡"), ord("¬")+1))+list(range(ord("®"), ord("ÿ")+1))
     cs = bs[:]
     n = 0
     for b in range(2**8):
@@ -978,6 +978,49 @@ class PreNormattention_qkv(nn.Module):
         self.fn = fn
     def forward(self, q, k, v, **kwargs):
         return self.fn(self.norm(q), self.norm(k), self.norm(v), **kwargs) + q
+
+
+class IdentityQKV(nn.Module):
+    """Identity replacement for the temporal QKV context module."""
+
+    def forward(self, q, k=None, v=None, **kwargs):
+        del k, v, kwargs
+        return q
+
+
+def _coerce_bool_config(value, name):
+    """Parse a boolean config value without treating ``"false"`` as true."""
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    raise ValueError(
+        f"{name} must be a boolean value (true/false, 1/0, on/off); got {value!r}"
+    )
+
+
+def _coerce_positive_int_config(value, name):
+    """Parse a positive integer config value."""
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(f"{name} must be a positive integer; got {value!r}")
+    if isinstance(value, (float, np.floating)) and not float(value).is_integer():
+        raise ValueError(f"{name} must be a positive integer; got {value!r}")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(
+            f"{name} must be a positive integer; got {value!r}"
+        ) from exc
+    if parsed <= 0:
+        raise ValueError(f"{name} must be a positive integer; got {value!r}")
+    return parsed
+
 
 class Transformer_v1(nn.Module):
     def __init__(self, heads=8, dim=2048, dim_head_k=256, dim_head_v=256, dropout_atte = 0.05, mlp_dim=2048, dropout_ffn = 0.05, depth=1):
@@ -2667,7 +2710,7 @@ def OTAM_cum_dist_v2(dists, lbda=0.5):
     TODO: clearn up if possible - currently messy to work with pt1.8. Possibly due to stack operation?
     """
     with torch.cuda.amp.autocast(enabled=False):
-        dists = dists.float()  #  AMP ?float16 ?exp/log ?NaN
+        dists = dists.float()  # 防止 AMP 下 float16 的 exp/log 数值下溢导致 NaN
         dists = F.pad(dists, (1,1), 'constant', 0)  # [25, 25, 8, 10]
 
         cum_dists = torch.zeros(dists.shape, device=dists.device)
@@ -2700,7 +2743,36 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
     """
     OTAM with a CNN backbone.
     """
-    _prompt_logged = False  # ?    
+    _prompt_logged = False  # 类变量，确保只显示一次
+
+    def _configure_temporal_context(self):
+        """Build the optional temporal context module used by OTAM paths."""
+        self.use_transformer = _coerce_bool_config(
+            getattr(self.args.TRAIN, "USE_TRANSFORMER", True),
+            "TRAIN.USE_TRANSFORMER",
+        )
+        if self.use_transformer:
+            transformer_depth = _coerce_positive_int_config(
+                getattr(self.args.TRAIN, "TRANSFORMER_DEPTH", 1),
+                "TRAIN.TRANSFORMER_DEPTH",
+            )
+            self.transformer_depth = transformer_depth
+            self.context2 = Transformer_v1(
+                dim=self.mid_dim,
+                heads=8,
+                dim_head_k=self.mid_dim // 8,
+                dropout_atte=0.2,
+                depth=transformer_depth,
+            )
+        else:
+            self.transformer_depth = 0
+            self.context2 = IdentityQKV()
+        logger.info(
+            "Temporal context Transformer: enabled=%s, depth=%d",
+            self.use_transformer,
+            self.transformer_depth,
+        )
+    
     def __init__(self, cfg):
         super(CNN_OTAM_SF_CLIP, self).__init__(cfg)
         args = cfg
@@ -2720,6 +2792,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
             # self.backbone = backbone.visual model.load_state_dict(state_dict)
             # self.backbone = CLIP
             self.mid_dim = 512
+        # 可选：冻结视觉 backbone，防止 ViT 灾难性遗忘
         if hasattr(cfg.TRAIN, "FREEZE_BACKBONE") and cfg.TRAIN.FREEZE_BACKBONE:
             for param in self.backbone.parameters():
                 param.requires_grad = False
@@ -2727,12 +2800,12 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
         else:
             logger.info("Visual backbone trainable (TRAIN.FREEZE_BACKBONE=False/unset)")
         with torch.no_grad():
-            # ?PROMPT 
+            # 只在第一次初始化时显示 PROMPT 信息
             if not CNN_OTAM_SF_CLIP._prompt_logged:
                 if hasattr(self.args.TEST, "PROMPT") and self.args.TEST.PROMPT:
-                    logger.info(f"Using custom PROMPT: '{self.args.TEST.PROMPT}'")
+                    logger.info(f" 使用自定义 PROMPT: '{self.args.TEST.PROMPT}'")
                 else:
-                    logger.info("Using default PROMPT: '{}'")
+                    logger.info(" 使用默认 PROMPT: '{}'（不加前缀）")
                 CNN_OTAM_SF_CLIP._prompt_logged = True
 
             if hasattr(self.args.TEST, "PROMPT") and self.args.TEST.PROMPT:
@@ -2758,15 +2831,12 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
         if not (hasattr(cfg.TRAIN, "USE_CLASSIFICATION") and cfg.TRAIN.USE_CLASSIFICATION):
             self.scale.requires_grad_(False)
         
-        if hasattr(self.args.TRAIN, "TRANSFORMER_DEPTH") and self.args.TRAIN.TRANSFORMER_DEPTH:
-            self.context2 = Transformer_v1(dim=self.mid_dim, heads = 8, dim_head_k = self.mid_dim//8, dropout_atte = 0.2, depth=int(self.args.TRAIN.TRANSFORMER_DEPTH))
-        else:
-            self.context2 = Transformer_v1(dim=self.mid_dim, heads = 8, dim_head_k = self.mid_dim//8, dropout_atte = 0.2)
+        self._configure_temporal_context()
         
         # Log TEXT_COFF parameter configuration
         if hasattr(self.args.TRAIN, "TEXT_COFF") and self.args.TRAIN.TEXT_COFF is not None:
             beta = self.args.TRAIN.TEXT_COFF
-            logger.info(f"CNN_OTAM_SF_CLIP initialized with TEXT_COFF parameter: ={beta}, (1-)={1-beta}")
+            logger.info(f"CNN_OTAM_SF_CLIP initialized with TEXT_COFF parameter: β={beta}, (1-β)={1-beta}")
         else:
             logger.info("CNN_OTAM_SF_CLIP initialized with default fusion weights (no TEXT_COFF parameter)")
         # set_trace()
@@ -2841,7 +2911,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
                 context_support = torch.stack(context_support)
             support_features = torch.cat([support_features, context_support], dim=1)
             support_features = self.context2(support_features, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]
-            #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]#ontext_supportsupport_features
+            #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]#改第一个context_support，本来是support_features
             if hasattr(self.args.TRAIN, "MERGE_BEFORE") and self.args.TRAIN.MERGE_BEFORE:
                 pass
             else:
@@ -2933,7 +3003,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
                 """---------------------------------------------------------------------------"""
                 """
                 *****************************************
-                # target_features = self.context2(target_features, target_features, target_features)
+                代码# target_features = self.context2(target_features, target_features, target_features)
                 ************************************
                 """
 
@@ -2946,7 +3016,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
                     context_support = torch.stack(context_support)
                 support_features = torch.cat([support_features, context_support], dim=1)
                 support_features = self.context2(support_features, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]
-                #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]#ontext_supportsupport_features
+                #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]#改第一个context_support，本来是support_features
                 if hasattr(self.args.TRAIN, "MERGE_BEFORE") and self.args.TRAIN.MERGE_BEFORE:
                     pass
                 else:
@@ -2976,7 +3046,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
                     cum_dists_visual = OTAM_cum_dist_v2(dists) + OTAM_cum_dist_v2(rearrange(dists, 'tb sb ts ss -> tb sb ss ts'))
                 cum_dists_visual_soft = F.softmax((8-cum_dists_visual)/8., dim=1)
                 if hasattr(self.args.TRAIN, "TEXT_COFF") and self.args.TRAIN.TEXT_COFF:
-                   # logger.info(f"Using TEXT_COFF parameter: ={self.args.TRAIN.TEXT_COFF}, (1-)={1.0-self.args.TRAIN.TEXT_COFF} for video-text and few-shot probability fusion")
+                   # logger.info(f"Using TEXT_COFF parameter: β={self.args.TRAIN.TEXT_COFF}, (1-β)={1.0-self.args.TRAIN.TEXT_COFF} for video-text and few-shot probability fusion")
                     cum_dists = -(logits_per_image.pow(self.args.TRAIN.TEXT_COFF)*cum_dists_visual_soft.pow(1.0-self.args.TRAIN.TEXT_COFF))
                 else:
                     cum_dists = -(logits_per_image.pow(0.5)*cum_dists_visual_soft.pow(0.5))
@@ -3008,7 +3078,7 @@ class CNN_OTAM_SF_CLIP(CNN_FSHead):
                     context_support = torch.stack(context_support)
                 support_features = torch.cat([support_features, context_support], dim=1)
                 support_features = self.context2(support_features, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]
-                #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]##ontext_supporttarget_features
+                #support_features = self.context2(context_support, support_features, support_features)[:,:self.args.DATA.NUM_INPUT_FRAMES,:]##改第一个context_support，本来是target_features
                 if hasattr(self.args.TRAIN, "MERGE_BEFORE") and self.args.TRAIN.MERGE_BEFORE:
                     pass
                 else:

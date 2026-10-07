@@ -1,0 +1,173 @@
+_BASE: ../OTAM_base.yaml
+TASK_TYPE: few_shot_action
+
+TRAIN:
+  ENABLE: true
+  USE_CLASSIFICATION: false
+  USE_CLASSIFICATION_VALUE: 1.2
+  DATASET_FEW: HMDB_few_shot
+  DATASET: Ssv2_few_shot
+  META_BATCH: true
+  NUM_SAMPLES: 1000000
+  WAY: 5
+  SHOT: 1
+  QUERY_PER_CLASS: 2
+  QUERY_PER_CLASS_TEST: 1
+  NUM_TRAIN_TASKS: 7000
+  NUM_TEST_TASKS: 10000
+  VAL_FRE_ITER: 300
+  BATCH_SIZE: 4
+  BATCH_SIZE_PER_TASK: 4
+  TEXT_COFF: 0.8
+  USE_TRANSFORMER: false
+  WAT_TEST: 5
+  SHOT_TEST: 1
+  ALLOW_SEMANTIC_FALLBACK: false
+  EVAL_TEXT: false
+  COMBINE: false
+  SINGLE_DIRECT: false
+  MERGE_BEFORE: false
+  USE_MID_LAYER_RELU: false
+  SEMANTIC_COMBINE: true
+  SEMANTIC_LOSS_WEIGHT: 0.4 #语义占的权重，帧对齐是1
+  SEMANTIC_TEMPERATURE: 0.1
+  # True  → 原始行为：行=帧, 列=阶段（一帧可对应多阶段）
+  # False → 转置行为：行=阶段, 列=帧（一阶段可对应多帧，一帧只对应一阶段）
+  SEMANTIC_TRANSPOSE: false
+  USE_QUERY_EMBED_TRAIN: false
+  USE_QUERY_EMBED_EVAL: false
+
+  USE_MID_LAYER_TRAIN: false
+  USE_MID_LAYER_EVAL: false
+  USE_MID_LAYER2: false
+  USE_MID_LAYER2_SEMANTIC_TRAIN: false
+  USE_MID_LAYER2_SEMANTIC_EVAL: false
+  USE_AMP: false
+
+  CLASS_NAME: ["a person holds a makeup applicator near the eye then carefully applies the product to the eyelid","a person raises a bow and aims at a target then pulls back the string and releases the arrow","a baby lowers onto hands and knees then moves forward by alternating arms and legs","a gymnast steps onto a narrow beam then walks and performs movements while maintaining balance","musicians hold their instruments in a marching band then march in formation while playing music","a baseball pitcher draws the throwing arm back then swings it forward and releases the baseball toward the catcher","a person raises a basketball into a shooting position then extends the arms and releases the ball toward the hoop","a player approaches the basketball hoop holding a basketball then jumps and pushes the ball down through the hoop","a person lies on a bench and grips the barbell with both hands then pushes the weight upward and lowers it back down","a person sits on a bicycle and grips the handlebars then pedals the legs to move forward","a billiards player aligns a cue stick behind the cue ball then strikes the cue ball to send it toward other balls on the table","a person holds a blow dryer near the wet hair then moves it back and forth to dry and style the hair","a person stands upright with feet shoulder-width apart then bends the knees to lower the body down and rises back up","a person approaches a bowling lane holding a bowling ball then swings the arm and releases the ball toward the pins","a person raises the fists in front of a hanging punching bag then repeatedly punches the bag","a person raises the fists beneath a small suspended speed bag then repeatedly strikes the rebounding bag in a rapid rhythm","a swimmer sweeps both arms outward and back toward the chest then extends the arms forward and performs a frog kick to glide in breaststroke","a person picks up a toothbrush and places it against the teeth then moves it back and forth to clean","a cricket bowler brings the bowling arm upward then rotates it over the shoulder to release the cricket ball toward the batter","a drummer raises the sticks above the drum surface then strikes down in a repeated rhythmic pattern","two fencers take guard positions facing each other then lunge and parry with their blades","a field hockey player positions the stick near the ball for a penalty attempt then strikes or pushes the ball toward the goal","a person reaches toward an incoming frisbee then catches and holds the flying disc","a swimmer reaches one arm forward while the other pulls through the water then alternates the arm strokes with flutter kicks in front crawl","a person positions scissors or clippers against a section of hair then cuts the hair to shorten or shape it","a person raises a hammer above a nail or work surface then brings it down repeatedly to hammer","a person places both hands on another person's head then uses fingers to press and knead the scalp","a person places a hoop around the waist then rotates the hips in a circular motion to keep it spinning","an athlete draws a javelin back above the shoulder then drives the arm forward and releases the javelin","a person holds multiple balls and tosses one upward then catches and throws each one in succession to keep them airborne","a person jumps to spread the feet and raise the arms overhead then jumps to bring the feet together and lower the arms in a jumping jack","a person sits in a kayak and grips the paddle then dips each blade alternately into the water to move forward","a person holds yarn and two needles together then loops the yarn through stitches to form a new row","a person sprints toward the takeoff point then leaps forward into the air and stretches the legs out to land","a person stands upright then steps one foot forward and lowers the back knee toward the ground","soldiers align in a military formation then march together in coordinated steps during a parade","a person places a spoon whisk or mixer into batter in a bowl then stirs or beats the batter to combine it","a person pushes a mop forward across the floor then pulls it back to clean the surface","a person grips a handle of a pair of nunchucks then swings the connected handle around the body and controls its return","a gymnast grips both parallel bars and supports the body with straight arms then performs controlled swings and movements","a person holds and stretches pizza dough then tosses and catches the spinning dough","a musician positions the cello upright and holds the bow then draws the bow across the strings to produce sound","a musician holds sticks beside a dhol drum then strikes its two drumheads to play a rhythm","a person raises the flute to the lips and positions the fingers over the holes then blows across the mouthpiece to produce notes","a person sits at the piano and positions both hands over the keys then presses the keys with the fingers to play notes","a musician positions the fingers along the neck of a sitar then plucks the sitar strings while changing finger positions","a musician positions the hands above a pair of tabla drums then taps and presses the drumheads with the fingers and palms","a musician holds a violin beneath the chin and places a bow on its strings then draws the bow across the strings while fingering notes","an athlete runs with a pole and plants its tip in the vault box then rises with the pole and clears the crossbar","a person grips a horizontal bar above with both hands then pulls the body upward until the chin clears the bar","a person holds the body in a straight position with hands on the ground then bends the elbows to lower the chest and pushes back up","a person sits in a raft and holds a paddle then strokes the paddle through the water to move forward","a person grips a rope above the head with both hands then pulls the body upward and repositions the hands higher","a rower reaches forward with the oars then pulls the handles toward the body to drive the boat through the water","a person places a razor or electric shaver against facial hair then moves it across the face to shave the beard","a person grips the handlebars of a jet ski then steers and rides the jet ski across the water","a person lifts a soccer ball off the ground then repeatedly taps it with the feet or legs to keep it airborne","a soccer player approaches a ball placed for a penalty kick then kicks the ball toward the goal","two sumo wrestlers face and engage each other then push or grapple to force the opponent out of the ring or down","a person sits on a swing and holds the ropes then pumps the legs forward and backward to build height","a table tennis player positions a paddle near an incoming ball then swings the paddle to strike the ball across the table","a person shifts weight into a tai chi stance then moves the arms and body slowly through controlled flowing postures","an athlete draws a discus back while turning the body then swings the arm and releases the discus into the air","a person bends the legs as the trampoline surface sinks then pushes upward and rebounds into repeated jumps","a person positions the fingers over a computer keyboard then presses successive keys to type","a gymnast grips one of the uneven bars then swings or supports the body and may transfer between the bars at different heights","a person walks beside a dog then continues walking as the dog moves alongside or ahead","a person stands facing a wall and places both hands flat against it then bends the elbows to lean in and pushes back","a person places chalk or a marker against a board then moves it across the board to write","a person holds the string and releases the yo-yo downward then flicks the wrist upward to return it"]
+  TRANSFORMER_DEPTH: 1 #context
+  FREEZE_BACKBONE: false
+  CHECKPOINT_FILE_PATH: ""
+  EVAL_PERIOD: 2
+  NUM_FOLDS: 1
+
+AUGMENTATION:
+  COLOR_AUG: false
+  NO_RANDOM_ERASE: true
+  BRIGHTNESS: 0.5
+  CONTRAST: 0.5
+  SATURATION: 0.5
+  HUE: 0.25
+  GRAYSCALE: 0.3
+  GRAY_FIRST: true
+  CONSISTENT: true
+  SHUFFLE: true
+  RATIO: [0.857142857142857, 1.1666666666666667]
+  USE_GPU: false
+
+  MIXUP:
+    ENABLE: false
+    ALPHA: 0.0
+    PROB: 1.0
+    MODE: batch
+    SWITCH_PROB: 0.5
+
+  CUTMIX:
+    ENABLE: false
+    ALPHA: 0.0
+    MINMAX: null
+
+  LABEL_SMOOTHING: 0.0
+  SSV2_FLIP: false
+  IS_SPLIT: false
+
+DATA:
+  DATA_ROOT_DIR: ./ucf/
+  ANNO_DIR: ./configs/projects/SF-CLIP/ucf101/
+  NUM_INPUT_FRAMES: 8
+  SAMPLING_RATE: 50
+  SAMPLING_UNIFORM: false
+  TRAIN_JITTER_SCALES: [256, 256]
+  MEAN: [0.48145466, 0.4578275, 0.40821073]
+  STD: [0.26862954, 0.26130258, 0.27577711]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 224
+  TEST_SCALE: 256
+  TEST_CENTER_CROP: true
+  CLIP_INTERVAL: 8
+  FPS: 12
+  TARGET_FPS: 12
+
+TEST:
+  ENABLE: false
+  DATASET: Ssv2_few_shot
+  BATCH_SIZE: 4
+  TEST_SET: val
+  NUM_ENSEMBLE_VIEWS: 1
+  SPATIAL_CROPS: cctltr
+  AUTOMATIC_MULTI_SCALE_TEST: false
+  UPLOAD_CLASSIFIER_RESULTS: true
+  CLASS_NAME: ["a person leans toward lit candles then blows air onto the flames to extinguish them","a weightlifter lifts a barbell from the floor to the shoulders in a clean then drives the bar overhead and straightens the arms in a jerk","a person positions at the edge of a cliff above water then jumps or dives from the cliff into the water","a person steadies food on a kitchen cutting surface then uses a knife to slice or chop the food","a diver takes off from a diving board or platform at a pool then moves through the air and enters the water","a gymnast moves across the floor exercise area then performs tumbling or other gymnastic movements on the floor","a golfer positions the club behind the ball and draws it back then swings forward through the ball to strike it","a person places both hands on the ground and kicks the legs upward into a handstand then shifts weight between hands to move forward","jockeys ride horses along a racecourse then urge the horses forward as they compete in a horse race","ice dancers glide on ice skates then perform coordinated dance steps and turns across the ice","a person holds both ends of a rope and swings it overhead then jumps over it as it passes beneath the feet","a gymnast supports the body with the hands on a pommel horse then circles or scissors the legs above the apparatus","a person pulls the arm back with the fist raised then extends the arm forward rapidly to strike","a person grips holds on an indoor climbing wall then pulls upward and repositions the feet and hands on higher holds","a salsa dancer steps and prepares to turn then rotates the body in a spin during the salsa dance","a skier glides on skis over snow then shifts weight and changes direction while skiing","a skydiver exits an aircraft into open air then spreads the limbs and controls the body during free fall","a gymnast grips two suspended gymnastic rings then supports or raises the body into controlled strength holds","a surfer positions the body on a surfboard in a wave then balances and steers the board while riding the wave","a tennis player draws a racket back toward an incoming tennis ball then swings forward to strike the ball","a volleyball player jumps and raises the hitting arm then strikes the ball overhead and downward across the net"]
+
+VIDEO:
+  BACKBONE:
+    DEPTH: null
+    META_ARCH: Identity
+    NUM_FILTERS: null
+    NUM_INPUT_CHANNELS: 3
+    NUM_OUT_FEATURES: null
+    KERNEL_SIZE: null
+    DOWNSAMPLING: null
+    DOWNSAMPLING_TEMPORAL: null
+    NUM_STREAMS: 1
+    EXPANSION_RATIO: 2
+    BRANCH:
+      NAME: null
+    STEM:
+      NAME: null
+    NONLOCAL:
+      ENABLE: false
+      STAGES: [5]
+      MASK_ENABLE: false
+    INITIALIZATION: null
+
+  HEAD:
+    NAME: CNN_SEMANTIC_ALIGNMENT_FEW_SHOT
+    ACTIVATION: softmax
+    DROPOUT_RATE: 0.0
+    NUM_CLASSES: 5
+    BACKBONE_NAME: ViT-B/16
+
+  DIM1D: 256
+  DIM2D: 128
+  DIM3D: 512
+  BACKBONE_LAYER: 2
+  BACKBONE_GROUPS_NUM: 4
+
+NUM_GPUS: 4
+OUTPUT_DIR: output2/ucf101_vit_5way1shot
+
+DATA_LOADER:
+  NUM_WORKERS: 24
+  PIN_MEMORY: true
+  ENABLE_MULTI_THREAD_DECODE: true
+
+SOLVER:
+  BASE_LR: 0.000002
+  LR_POLICY: steps_with_relative_lrs
+  WARMUP_EPOCHS: 1
+  WARMUP_START_LR: 0.0000001
+  MAX_EPOCH: 10
+  OPTIM_METHOD: adam
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 5e-5
+  DAMPENING: 0.0
+  NESTEROV: true
+  STEPS_ITER: 700
+  STEPS: [0, 4, 6]
+  LRS: [1, 0.1, 0.01]
+
+LOG_PERIOD: 50
+LOG_CONFIG_INFO: true
+LOG_MODEL_INFO: true
+RANDOM_SEED: 42
